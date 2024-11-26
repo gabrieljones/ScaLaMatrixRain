@@ -4,7 +4,7 @@ plugins {
 
 dependencies {
     constraints {
-        implementation("org.scala-lang:scala3-library_3:latest.release")
+        implementation("org.scala-lang:scala3-library_3:3.5.2")
     }
     implementation("org.scala-lang:scala3-library_3")
 }
