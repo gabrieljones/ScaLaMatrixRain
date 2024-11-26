@@ -112,13 +112,6 @@ object Main {
         val vY = drop(3)
         val c  = drop(4)
         val char = charFromSet
-        /*
-        if (c == 1) {
-          rainGraphics.setCharacter(pX, pY, char)
-        } else {
-          rainGraphics.setCharacter(pX, pY, ' ')
-        }
-        */
         {//advance drops
           if (vX != 0 && frameCounter % vX == 0) {
             val dir = if (vX > 0) 1 else -1
@@ -147,6 +140,13 @@ object Main {
           if (vYNew > 0 && vYNew < 32) { //if new velocity is in bounds update
             drop(3) = vYNew
           }
+//          {// accelerate in x dimension, wind
+//            val vvX   = Random.between(-32, 32) / 31 //accelerate = -1, 0, or 1, make changes less likely
+//            val vXNew = vX + vvX
+//            if (vXNew > -3 && vXNew < 0) {
+//              drop(2) = vXNew
+//            }
+//          }
         }
         {//if drop is off-screen then replace with new drop
           if (drop(0) < 0 || drop(1) < 0 || drop(0) > terminalSizeColumns || drop(1) > terminalSizeRows) {
