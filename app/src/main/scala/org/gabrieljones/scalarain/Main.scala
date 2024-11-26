@@ -13,10 +13,20 @@ import scala.util.chaining.scalaUtilChainingOps
 
 object Main {
   val dropQ = 100
-  val frameInterval = 50
-  val set = 0x30A0 -> 0x30FF //katakana unicode range
-//  val set = 0x1F600 -> 0x1F64F //emoji unicode range
-  def charFromSet = (Random.nextInt(set._2 - set._1) + set._1).toChar
+  val frameInterval = 100
+  val sets = Array(
+    0x30A0 -> 0x30FF, //katakana unicode range
+//    0x1F000 -> 0x1FAFF, //emoji unicode range
+//    0x41 -> 0x5A, //ascii capital letters
+//    0x2200 -> 0x22FF, //math symbols
+//    0x21 -> 0x2F, //ascii punctuation
+//    0x30 -> 0x39, //ascii numbers
+  )
+
+  def charFromSet = {
+    val set = sets(Random.nextInt(sets.length))
+    (Random.nextInt(set._2 - set._1) + set._1).toChar
+  }
   def main(args: Array[String]): Unit = {
     /*
     //range of katakana unicode points
