@@ -15,5 +15,5 @@ dependencyResolutionManagement {
 rootProject.name = "ScaLaMatrixRain"
 
 include(
-  "app",
+  "slmatrix",
 )
