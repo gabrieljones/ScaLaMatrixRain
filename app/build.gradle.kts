@@ -1,6 +1,7 @@
 plugins {
   id("buildlogic.scala-application-conventions")
   id("com.gradleup.shadow") version "latest.release"
+  id("org.graalvm.buildtools.native") version "latest.release"
 }
 
 dependencies {
