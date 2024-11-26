@@ -18,6 +18,9 @@ object Main {
   val fadeRateRed = 255
   val fadeRateGreen = 4
   val fadeRateBlue = 255
+  val fadeInterleaveInterval = 8
+  val fadeProbability = 25
+  val glitchProbability = 50
   val sets      = Array(
     0x30A0 -> 0x30FF, //katakana unicode range
 //    0x1F000 -> 0x1FAFF, //emoji unicode range
@@ -71,6 +74,16 @@ object Main {
       debugGraphics.putString(2, 5, drops(0).mkString(","))
       debugGraphics.putString(2, 6, lastInput.get().toString)
       debugGraphics.putString(2, 7, fadeRateGreen.toString)
+      for {
+        i <- 0 until 255
+        index = new TextColor.Indexed(i)
+      } {
+        t.setForegroundColor(index)
+        t.setCursorPosition(2 + (i+2) % 6 * 4, 8 + (i+2) / 6)
+        t.putCharacter('█')
+        val str = f"$i%3d"
+        str.foreach(t.putCharacter)
+      }
       t.setCursorPosition(bu)
       ()
     }
@@ -88,11 +101,12 @@ object Main {
       while (fy < terminalSizeRows) {
         while (fx < terminalSizeColumns) {
           val charCur = rainGraphics.getCharacter(fx, fy)
-          if (charCur != null && charCur.getCharacter != ' ' /* && charCur.getForegroundColor != TextColor.ANSI.WHITE_BRIGHT*/ ) {
+          if (charCur != null && charCur.getCharacter != ' ' && Random.nextInt(100) < fadeProbability) {
             val color    = charCur.getForegroundColor
             val colorNew = fade(color)
             if (colorNew.getGreen > 1) {
-              val charNew = new TextCharacter(charCur.getCharacter, colorNew, charCur.getBackgroundColor)
+              val charGlitched = if(Random.nextInt(100) < glitchProbability) charFromSet else charCur.getCharacter
+              val charNew   = new TextCharacter(charGlitched, colorNew, charCur.getBackgroundColor)
               rainGraphics.setCharacter(fx, fy, charNew)
             } else {
               rainGraphics.setCharacter(fx, fy, ' ')
@@ -107,13 +121,12 @@ object Main {
       var dI = 0
       while (dI < drops.length) {
         val drop = drops(dI)
-        val pX = drop(0)
-        val pY = drop(1)
+        val pXC = drop(0)
+        val pYC = drop(1)
         val vX = drop(2)
         val vY = drop(3)
         val c  = drop(4)
         val char = charFromSet
-        rainGraphics.setCharacter(pX, pY, char)
         /*
         if (c == 1) {
           rainGraphics.setCharacter(pX, pY, char)
@@ -121,18 +134,39 @@ object Main {
           rainGraphics.setCharacter(pX, pY, ' ')
         }
         */
-        //advance drops
-        if (vX != 0 && frameCounter % vX == 0) {
-          val dir = if (vX > 0) 1 else -1
-          drop(0) += dir //pX
+        {//advance drops
+          if (vX != 0 && frameCounter % vX == 0) {
+            val dir = if (vX > 0) 1 else -1
+            drop(0) += dir //pX
+          }
+          if (vY != 0 && frameCounter % vY == 0) {
+            val dir = if (vY > 0) 1 else -1
+            drop(1) += dir //pY
+          }
         }
-        if (vY != 0 && frameCounter % vY == 0) {
-          val dir = if (vY > 0) 1 else -1
-          drop(1) += dir //pY
+        {//paint drop new at next position
+          val pXN = drop(0)
+          val pYN = drop(1)
+          rainGraphics.setCharacter(pXN, pYN, char)
         }
-        if (drop(0) < 0 || drop(1) < 0 || drop(0) > terminalSizeColumns || drop(1) > terminalSizeRows) {
-          //if drop is off-screen then replace with new drop
-          newDrop(drop, terminalSizeColumns)
+        {//paint drop faded first step at current position
+          val pXN = drop(0)
+          val pYN = drop(1)
+          if (pXN != pYC && pYN != pYC) {
+            rainGraphics.setCharacter(pXC, pYC, new TextCharacter(char, fade(TextColor.ANSI.WHITE_BRIGHT), TextColor.ANSI.DEFAULT))
+          }
+        }
+        {// randomly accelerate
+          val vvY   = Random.between(-32, 32) / 31 //accelerate = -1, 0, or 1, make changes less likely
+          val vYNew = vY + vvY
+          if (vYNew > 0 && vYNew < 32) { //if new velocity is in bounds update
+            drop(3) = vYNew
+          }
+        }
+        {//if drop is off-screen then replace with new drop
+          if (drop(0) < 0 || drop(1) < 0 || drop(0) > terminalSizeColumns || drop(1) > terminalSizeRows) {
+            newDrop(drop, terminalSizeColumns)
+          }
         }
         dI += 1
       }
@@ -175,11 +209,13 @@ object Main {
   }
 
   val colorMap = new util.HashMap[TextColor, TextColor]()
+  ((15 to 15) ++ (46 to 16 by -6)).map(i => new TextColor.Indexed(i)).sliding(2).foreach { case Seq(a, b) => colorMap.put(a, b) }
+  colorMap.put(TextColor.ANSI.WHITE_BRIGHT, new TextColor.Indexed(46))
   def fade(color: TextColor): TextColor = {
     if (colorMap.containsKey(color)) {
       colorMap.get(color)
     } else {
-      val colorNew = TextColor.RGB(
+      val colorNew = TextColor.Indexed.fromRGB(
         Math.max(0, color.getRed - fadeRateRed),
         Math.max(0, color.getGreen - fadeRateGreen),
         Math.max(0, color.getBlue - fadeRateBlue),
