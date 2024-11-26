@@ -79,15 +79,15 @@ object Main {
       var fy = 0
       while (fy < terminalSizeRows) {
         while (fx < terminalSizeColumns) {
-          val cc = rainGraphics.getCharacter(fx, fy)
-          if (cc != null && cc.getCharacter != ' ') {
-            val color    = cc.getForegroundColor
+          val charCur = rainGraphics.getCharacter(fx, fy)
+          if (charCur != null && charCur.getCharacter != ' ') {
+            val color    = charCur.getForegroundColor
             val newGreen = color.getGreen - 4
             if (newGreen > 1) {
-              val ccN = cc
+              val charNew = charCur
                 .withForegroundColor(TextColor.RGB(0, newGreen, 0))
                 .withoutModifier(SGR.BOLD)
-              rainGraphics.setCharacter(fx, fy, ccN)
+              rainGraphics.setCharacter(fx, fy, charNew)
             } else {
               rainGraphics.setCharacter(fx, fy, ' ')
             }
