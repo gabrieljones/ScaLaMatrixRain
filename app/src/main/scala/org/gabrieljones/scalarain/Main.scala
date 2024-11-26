@@ -20,7 +20,7 @@ object Main {
   val fadeRateBlue = 255
   val fadeInterleaveInterval = 8
   val fadeProbability = 25
-  val glitchProbability = 50
+  val glitchProbability = 25
   val sets      = Array(
     0x30A0 -> 0x30FF, //katakana unicode range
 //    0x1F000 -> 0x1FAFF, //emoji unicode range
@@ -102,11 +102,12 @@ object Main {
         while (fx < terminalSizeColumns) {
           val charCur = rainGraphics.getCharacter(fx, fy)
           if (charCur != null && charCur.getCharacter != ' ' && Random.nextInt(100) < fadeProbability) {
-            val color    = charCur.getForegroundColor
-            val colorNew = fade(color)
+            val colorCur = charCur.getForegroundColor
+            val glitchInsteadOfFade = Random.nextInt(100) < glitchProbability
+            val colorNew = if (glitchInsteadOfFade) colorCur else fade(colorCur)
             if (colorNew.getGreen > 1) {
-              val charGlitched = if(Random.nextInt(100) < glitchProbability) charFromSet else charCur.getCharacter
-              val charNew   = new TextCharacter(charGlitched, colorNew, charCur.getBackgroundColor)
+              val charGlitched = if (glitchInsteadOfFade) charFromSet else charCur.getCharacter
+              val charNew = new TextCharacter(charGlitched, colorNew, charCur.getBackgroundColor)
               rainGraphics.setCharacter(fx, fy, charNew)
             } else {
               rainGraphics.setCharacter(fx, fy, ' ')
