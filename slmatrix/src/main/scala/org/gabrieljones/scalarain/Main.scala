@@ -45,7 +45,7 @@ object Main {
     rainGraphics.setModifiers(util.EnumSet.of(SGR.BOLD))
     val lastInput = new AtomicReference[KeyStroke](KeyStroke.fromString("|"))
     var frameCounter: Int = 0
-    val drops: Array[Array[Int]] = Array.fill(dropQuantityFactor * terminal.getTerminalSize.getColumns)(newDrop(new Array[Int](5), terminal.getTerminalSize.getColumns).tap(_(1) = Random.nextInt(terminal.getTerminalSize.getRows)))
+    val drops: Array[Array[Int]] = Array.fill((dropQuantityFactor * terminal.getTerminalSize.getColumns).toInt)(newDrop(new Array[Int](5), terminal.getTerminalSize.getColumns).tap(_(1) = Random.nextInt(terminal.getTerminalSize.getRows)))
     val debugOn = (t: Terminal, input: KeyStroke) => {
       if (input != null) {
         lastInput.set(input)
@@ -78,7 +78,7 @@ object Main {
       val input = terminal.pollInput()
       checkExit(input)
       val terminalSize = terminal.getTerminalSize
-      val terminalSizeColumns = terminalSize.getColumns
+      val terminalSizeColumns = terminalSize.getColumns - 1
       val terminalSizeRows = terminalSize.getRows
       var fx = 0
       var fy = 0
@@ -122,6 +122,20 @@ object Main {
             drop(1) += dir //pY
           }
         }
+        {//if drop is off-screen then wrap around
+          if (drop(0) < 0) {
+            drop(0) = terminalSizeColumns - 1
+          }
+          if (drop(0) >= terminalSizeColumns) {
+            drop(0) = 0
+          }
+          if (drop(1) < 0) {
+            drop(1) = terminalSizeRows - 1
+          }
+          if (drop(1) >= terminalSizeRows) {
+            drop(1) = 0
+          }
+        }
         {//paint drop new at next position
           val pXN = drop(0)
           val pYN = drop(1)
@@ -132,25 +146,25 @@ object Main {
           val pYN = drop(1)
           if (pXN != pYC && pYN != pYC) {
             rainGraphics.setCharacter(pXC, pYC, new TextCharacter(char, fade(TextColor.ANSI.WHITE_BRIGHT), TextColor.ANSI.DEFAULT))
+//            rainGraphics.putString(pXC, pYC, s"$vX,$vY")
           }
         }
         {// randomly accelerate
           val vvY   = Random.between(-32, 32) / 31 //accelerate = -1, 0, or 1, make changes less likely
           val vYNew = vY + vvY
-          if (vYNew > 0 && vYNew < 32) { //if new velocity is in bounds update
+          if (vYNew < -32 || vYNew > 32) { //if new velocity is out of bounds reset
+            drop(3) = 0
+          } else {
             drop(3) = vYNew
           }
-//          {// accelerate in x dimension, wind
-//            val vvX   = Random.between(-32, 32) / 31 //accelerate = -1, 0, or 1, make changes less likely
-//            val vXNew = vX + vvX
-//            if (vXNew > -3 && vXNew < 0) {
-//              drop(2) = vXNew
-//            }
-//          }
-        }
-        {//if drop is off-screen then replace with new drop
-          if (drop(0) < 0 || drop(1) < 0 || drop(0) > terminalSizeColumns || drop(1) > terminalSizeRows) {
-            newDrop(drop, terminalSizeColumns)
+          {// accelerate in x dimension, wind
+            val vvX   = Random.between(-32, 32) / 31 //accelerate = -1, 0, or 1, make changes less likely
+            val vXNew = vX + vvX
+            if (vXNew < -32 || vXNew > 32) { //if new velocity is out of bounds reset
+              drop(2) = 0
+            } else {
+              drop(2) = vXNew
+            }
           }
         }
         dI += 1
