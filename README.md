@@ -47,5 +47,6 @@ Make it available via Homebrew and Scoop.
 - HEAP: Set max heap for improved and more predictable memory usage.
 - CPU:  Enable more CPU features with '-march=native' for improved performance.
 
+### Versioning
 
-
+Add axion-release-plugin for versioning and releasing.
