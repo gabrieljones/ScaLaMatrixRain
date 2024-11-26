@@ -1,9 +1,8 @@
 package org.gabrieljones.scalarain
 
-import com.googlecode.lanterna.graphics.TextGraphics
 import com.googlecode.lanterna.input.KeyStroke
 import com.googlecode.lanterna.terminal.{DefaultTerminalFactory, Terminal}
-import com.googlecode.lanterna.{SGR, TerminalPosition, TerminalSize, TextCharacter, TextColor}
+import com.googlecode.lanterna.*
 
 import java.util
 import java.util.concurrent.ScheduledFuture
@@ -12,13 +11,8 @@ import scala.util.Random
 import scala.util.chaining.scalaUtilChainingOps
 
 object Main {
-  val dropQ = 100
-  val frameInterval = 100
-  val fadeSteps = 16
-  val fadeRateRed = 255
-  val fadeRateGreen = 4
-  val fadeRateBlue = 255
-  val fadeInterleaveInterval = 8
+  val dropQuantityFactor = 1
+  val frameInterval = 50
   val fadeProbability = 25
   val glitchProbability = 25
   val sets      = Array(
@@ -35,13 +29,6 @@ object Main {
     (Random.nextInt(set._2 - set._1) + set._1).toChar
   }
   def main(args: Array[String]): Unit = {
-    /*
-    //range of katakana unicode points
-    val katakana = (0x30A0 to 0x30FF).map(_.toChar).toArray
-    //random iterator
-    val rc = Iterator.continually(Random.nextInt(katakana.length))
-      .map(katakana)
-     */
 
     //lanterna copy screen
     val defaultTerminalFactory = new DefaultTerminalFactory()
@@ -53,14 +40,12 @@ object Main {
     val scheduler = new java.util.concurrent.ScheduledThreadPoolExecutor(1)
     val debugGraphics = terminal.newTextGraphics()
     debugGraphics.setForegroundColor(TextColor.ANSI.RED_BRIGHT)
-//    val fadeGraphics = terminal.newTextGraphics()
-//    fadeGraphics.setForegroundColor(TextColor.RGB(0, 255, 0))
     val rainGraphics = terminal.newTextGraphics()
     rainGraphics.setForegroundColor(TextColor.ANSI.WHITE_BRIGHT)
     rainGraphics.setModifiers(util.EnumSet.of(SGR.BOLD))
     val lastInput = new AtomicReference[KeyStroke](KeyStroke.fromString("|"))
     var frameCounter: Int = 0
-    val drops: Array[Array[Int]] = Array.fill(dropQ)(newDrop(new Array[Int](5), terminal.getTerminalSize.getColumns).tap(_(1) = Random.nextInt(terminal.getTerminalSize.getRows)))
+    val drops: Array[Array[Int]] = Array.fill(dropQuantityFactor * terminal.getTerminalSize.getColumns)(newDrop(new Array[Int](5), terminal.getTerminalSize.getColumns).tap(_(1) = Random.nextInt(terminal.getTerminalSize.getRows)))
     val debugOn = (t: Terminal, input: KeyStroke) => {
       if (input != null) {
         lastInput.set(input)
@@ -73,7 +58,6 @@ object Main {
       debugGraphics.putString(2, 4, frameCounter.toString)
       debugGraphics.putString(2, 5, drops(0).mkString(","))
       debugGraphics.putString(2, 6, lastInput.get().toString)
-      debugGraphics.putString(2, 7, fadeRateGreen.toString)
       for {
         i <- 0 until 255
         index = new TextColor.Indexed(i)
@@ -216,13 +200,7 @@ object Main {
     if (colorMap.containsKey(color)) {
       colorMap.get(color)
     } else {
-      val colorNew = TextColor.Indexed.fromRGB(
-        Math.max(0, color.getRed - fadeRateRed),
-        Math.max(0, color.getGreen - fadeRateGreen),
-        Math.max(0, color.getBlue - fadeRateBlue),
-      )
-      colorMap.put(color, colorNew)
-      colorNew
+      TextColor.ANSI.RED //unexpected color map entry, return red
     }
   }
 
