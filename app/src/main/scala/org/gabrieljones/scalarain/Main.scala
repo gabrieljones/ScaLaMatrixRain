@@ -1,20 +1,24 @@
 package org.gabrieljones.scalarain
 
+import com.googlecode.lanterna.graphics.TextGraphics
 import com.googlecode.lanterna.input.KeyStroke
 import com.googlecode.lanterna.terminal.{DefaultTerminalFactory, Terminal}
-import com.googlecode.lanterna.{SGR, TerminalPosition, TerminalSize, TextColor}
+import com.googlecode.lanterna.{SGR, TerminalPosition, TerminalSize, TextCharacter, TextColor}
 
 import java.util
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.atomic.AtomicReference
 import scala.util.Random
-
 import scala.util.chaining.scalaUtilChainingOps
 
 object Main {
   val dropQ = 100
   val frameInterval = 100
-  val sets = Array(
+  val fadeSteps = 16
+  val fadeRateRed = 255
+  val fadeRateGreen = 4
+  val fadeRateBlue = 255
+  val sets      = Array(
     0x30A0 -> 0x30FF, //katakana unicode range
 //    0x1F000 -> 0x1FAFF, //emoji unicode range
 //    0x41 -> 0x5A, //ascii capital letters
@@ -45,6 +49,9 @@ object Main {
     //frame interval with scheduler
     val scheduler = new java.util.concurrent.ScheduledThreadPoolExecutor(1)
     val debugGraphics = terminal.newTextGraphics()
+    debugGraphics.setForegroundColor(TextColor.ANSI.RED_BRIGHT)
+//    val fadeGraphics = terminal.newTextGraphics()
+//    fadeGraphics.setForegroundColor(TextColor.RGB(0, 255, 0))
     val rainGraphics = terminal.newTextGraphics()
     rainGraphics.setForegroundColor(TextColor.ANSI.WHITE_BRIGHT)
     rainGraphics.setModifiers(util.EnumSet.of(SGR.BOLD))
@@ -63,6 +70,7 @@ object Main {
       debugGraphics.putString(2, 4, frameCounter.toString)
       debugGraphics.putString(2, 5, drops(0).mkString(","))
       debugGraphics.putString(2, 6, lastInput.get().toString)
+      debugGraphics.putString(2, 7, fadeRateGreen.toString)
       t.setCursorPosition(bu)
       ()
     }
@@ -80,13 +88,11 @@ object Main {
       while (fy < terminalSizeRows) {
         while (fx < terminalSizeColumns) {
           val charCur = rainGraphics.getCharacter(fx, fy)
-          if (charCur != null && charCur.getCharacter != ' ') {
+          if (charCur != null && charCur.getCharacter != ' ' /* && charCur.getForegroundColor != TextColor.ANSI.WHITE_BRIGHT*/ ) {
             val color    = charCur.getForegroundColor
-            val newGreen = color.getGreen - 4
-            if (newGreen > 1) {
-              val charNew = charCur
-                .withForegroundColor(TextColor.RGB(0, newGreen, 0))
-                .withoutModifier(SGR.BOLD)
+            val colorNew = fade(color)
+            if (colorNew.getGreen > 1) {
+              val charNew = new TextCharacter(charCur.getCharacter, colorNew, charCur.getBackgroundColor)
               rainGraphics.setCharacter(fx, fy, charNew)
             } else {
               rainGraphics.setCharacter(fx, fy, ' ')
@@ -142,11 +148,12 @@ object Main {
     }))
     try {
       animationLoop.get()
-    } catch
+    } catch {
       case e: Exception =>
         terminal.close()
         e.printStackTrace()
         System.exit(1)
+    }
   }
 
   def newDrop(drop: Array[Int], terminalSizeColumns: Int): Array[Int] = {
@@ -164,6 +171,28 @@ object Main {
       if (c == 'q' || c == 'Q' || c == 'c' || c == 'C') {
         System.exit(0)
       }
+    }
+  }
+
+  val colorMap = new util.HashMap[TextColor, TextColor]()
+  def fade(color: TextColor): TextColor = {
+    if (colorMap.containsKey(color)) {
+      colorMap.get(color)
+    } else {
+      val colorNew = TextColor.RGB(
+        Math.max(0, color.getRed - fadeRateRed),
+        Math.max(0, color.getGreen - fadeRateGreen),
+        Math.max(0, color.getBlue - fadeRateBlue),
+      )
+      colorMap.put(color, colorNew)
+      colorNew
+    }
+  }
+
+  extension (t: Terminal) {
+    def putString(x: Int, y: Int, s: String): Unit = {
+      t.setCursorPosition(x, y)
+      s.foreach(t.putCharacter)
     }
   }
 }
