@@ -9,7 +9,7 @@
 ## Run
 
 ```shell
-./gradlew shadowJar && java -jar app/build/libs/app-all.jar
+./gradlew shadowJar && java -jar slmatrix/build/libs/slmatrix-all.jar
 ```
 
 ## Native
