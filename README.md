@@ -4,6 +4,8 @@
 
 [Scala](https://www.scala-lang.org/) [Lanterna](https://github.com/mabe02/lanterna) [Matrix Digital Rain](https://en.wikipedia.org/wiki/Matrix_digital_rain)
 
+- [Lanterna](https://github.com/mabe02/lanterna) allows you to write easy semi-graphical user interfaces in a text-only environment, very similar to the C library curses but with more functionality.
+
 ## Run
 
 ```shell
