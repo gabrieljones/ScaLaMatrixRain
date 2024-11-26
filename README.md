@@ -1,5 +1,7 @@
 # ScaLaMatrixRain
 
+![Matrix Digital Rain](https://github.com/user-attachments/assets/140317b8-0336-4402-9469-de003ee6ca6e)
+
 [Scala](https://www.scala-lang.org/) [Lanterna](https://github.com/mabe02/lanterna) [Matrix Digital Rain](https://en.wikipedia.org/wiki/Matrix_digital_rain)
 
 ## Run
