@@ -133,7 +133,7 @@ object Main {
       while (fy < terminalSizeRows) {
         while (fx < terminalSizeColumns) {
           val charCur = rainGraphics.getCharacter(fx, fy)
-          if (charCur != null && charCur.getCharacter != ' ' && Random.nextInt(100) < fadeProbability) {
+          if (charCur != null && charCur != TextCharacter.DEFAULT_CHARACTER && Random.nextInt(100) < fadeProbability) {
             val colorCur = charCur.getForegroundColor
             val glitchInsteadOfFade = Random.nextInt(100) < glitchProbability
             val colorNew = if (glitchInsteadOfFade) colorCur else fade(colorCur)
@@ -142,7 +142,7 @@ object Main {
               val charNew = new TextCharacter(charGlitched, colorNew, charCur.getBackgroundColor)
               rainGraphics.setCharacter(fx, fy, charNew)
             } else {
-              rainGraphics.setCharacter(fx, fy, ' ')
+              rainGraphics.setCharacter(fx, fy, TextCharacter.DEFAULT_CHARACTER)
             }
           }
           fx += 1
@@ -242,8 +242,10 @@ object Main {
   }
 
   val colorMap = new util.HashMap[TextColor, TextColor]()
-  ((15 to 15) ++ (46 to 16 by -6)).map(i => new TextColor.Indexed(i)).sliding(2).foreach { case Seq(a, b) => colorMap.put(a, b) }
-  colorMap.put(TextColor.ANSI.WHITE_BRIGHT, new TextColor.Indexed(46))
+  val colorBase = 46
+//  val colorBase = 226
+  ((15 to 15) ++ (colorBase to (colorBase - 30) by -6)).map(i => new TextColor.Indexed(i)).sliding(2).foreach { case Seq(a, b) => colorMap.put(a, b) }
+  colorMap.put(TextColor.ANSI.WHITE_BRIGHT, new TextColor.Indexed(colorBase))
   def fade(color: TextColor): TextColor = {
     if (colorMap.containsKey(color)) {
       colorMap.get(color)
