@@ -29,12 +29,53 @@ object Main {
 
   def charFromSet: Char = sets(Random.nextInt(sets.length)).toChar
 
+  object flags {
+    val intro = false
+  }
   def main(args: Array[String]): Unit = {
 
     //lanterna copy screen
     val defaultTerminalFactory = new DefaultTerminalFactory()
     val terminal = defaultTerminalFactory.createTerminal()
     terminal.enterPrivateMode()
+    terminal.setCursorVisible(false)
+
+    if (flags.intro) {
+      val pos = TerminalPosition(5, 3)
+      terminal.setForegroundColor(TextColor.ANSI.GREEN_BRIGHT)
+      terminal.setCursorPosition(pos)
+      "Wake up, Neo...".foreach { c =>
+        terminal.putCharacter(c)
+        terminal.flush()
+        Thread.sleep(100)
+      }
+      Thread.sleep(5000)
+      terminal.clearScreen()
+      terminal.setCursorPosition(pos)
+      "The Matrix has you...".foreach { c =>
+        terminal.putCharacter(c)
+        terminal.flush()
+        Thread.sleep(300)
+      }
+      Thread.sleep(5000)
+      terminal.clearScreen()
+      terminal.setCursorPosition(pos)
+      "Follow the white rabbit.".foreach { c =>
+        terminal.putCharacter(c)
+        terminal.flush()
+        Thread.sleep(100)
+      }
+      Thread.sleep(5000)
+      terminal.clearScreen()
+      Thread.sleep(100)
+      terminal.setCursorPosition(pos)
+      terminal.putString("Knock, knock, Neo.")
+      terminal.flush()
+      Thread.sleep(5000)
+      terminal.clearScreen()
+    }
+
+    terminal.setForegroundColor(TextColor.ANSI.WHITE_BRIGHT)
     terminal.setCursorVisible(false)
 
     //frame interval with scheduler
