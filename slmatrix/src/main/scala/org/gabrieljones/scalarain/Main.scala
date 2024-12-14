@@ -15,19 +15,20 @@ object Main {
   val frameInterval = 50
   val fadeProbability = 25
   val glitchProbability = 25
-  val sets      = Array(
-    0x30A0 -> 0x30FF, //katakana unicode range
-//    0x1F000 -> 0x1FAFF, //emoji unicode range
-//    0x41 -> 0x5A, //ascii capital letters
-//    0x2200 -> 0x22FF, //math symbols
-//    0x21 -> 0x2F, //ascii punctuation
-//    0x30 -> 0x39, //ascii numbers
+  val sets: Array[Int] = Array(
+    0x30A0 to 0x30FF, //katakana unicode range
+    0xFF10 to 0xFF19, //full width numbers
+//    0x1F000 to 0x1FAFF, //emoji unicode range
+//    0x41 to 0x5A, //ascii capital letters
+//    0x2200 to 0x22FF, //math symbols
+//    0x21 to 0x2F, //ascii punctuation
+//    0xFF66 to 0xFF9D, //half width katakana
+//    0x30 to 0x39, //ascii numbers
   )
+    .flatten
 
-  def charFromSet = {
-    val set = sets(Random.nextInt(sets.length))
-    (Random.nextInt(set._2 - set._1) + set._1).toChar
-  }
+  def charFromSet: Char = sets(Random.nextInt(sets.length)).toChar
+
   def main(args: Array[String]): Unit = {
 
     //lanterna copy screen
