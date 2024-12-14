@@ -178,7 +178,7 @@ object Main {
         {//paint drop faded first step at current position
           val pXN = drop(0)
           val pYN = drop(1)
-          if (pXN != pYC && pYN != pYC) {
+          if (pXN != pXC || pYN != pYC) {
             rainGraphics.setCharacter(pXC, pYC, new TextCharacter(char, fade(TextColor.ANSI.WHITE_BRIGHT), TextColor.ANSI.DEFAULT))
           }
         }
