@@ -11,7 +11,7 @@ import scala.util.Random
 import scala.util.chaining.scalaUtilChainingOps
 
 object Main {
-  val dropQuantityFactor = 1
+  val dropQuantityFactor: Double = 1
   val frameInterval = 50
   val fadeProbability = 25
   val glitchProbability = 25
@@ -46,7 +46,13 @@ object Main {
     rainGraphics.setModifiers(util.EnumSet.of(SGR.BOLD))
     val lastInput = new AtomicReference[KeyStroke](KeyStroke.fromString("|"))
     var frameCounter: Int = 0
-    val drops: Array[Array[Int]] = Array.fill(dropQuantityFactor * terminal.getTerminalSize.getColumns)(newDrop(new Array[Int](5), terminal.getTerminalSize.getColumns).tap(_(1) = Random.nextInt(terminal.getTerminalSize.getRows)))
+    val terminalSize: TerminalSize = terminal.getTerminalSize
+    val terminalSizeColumns = terminalSize.getColumns
+    val terminalsSizeRows   = terminalSize.getRows
+    val dropQuantity = (dropQuantityFactor * terminalSizeColumns).toInt
+    val drops: Array[Array[Int]] = Array.fill(dropQuantity) {
+      newDrop(new Array[Int](5), terminalSizeColumns).tap(_(1) = Random.nextInt(terminalsSizeRows))
+    }
     val debugOn = (t: Terminal, input: KeyStroke) => {
       if (input != null) {
         lastInput.set(input)
