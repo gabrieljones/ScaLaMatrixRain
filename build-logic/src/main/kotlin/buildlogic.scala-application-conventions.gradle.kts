@@ -1,4 +1,4 @@
 plugins {
-    id("buildlogic.scala-common-conventions")
-    application
+  id("buildlogic.scala-common-conventions")
+  application
 }
