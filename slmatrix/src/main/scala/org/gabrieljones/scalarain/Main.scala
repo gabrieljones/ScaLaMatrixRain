@@ -30,69 +30,132 @@ object Main {
   def charFromSet: Char = sets(Random.nextInt(sets.length)).toChar
 
   object flags {
-    val intro = false
+    val trace = true
+    val wakeUp = true
+    val trace2 = true
   }
+
   def main(args: Array[String]): Unit = {
 
     //lanterna copy screen
     val defaultTerminalFactory = new DefaultTerminalFactory()
     val terminal = defaultTerminalFactory.createTerminal()
-    terminal.enterPrivateMode()
-    terminal.setCursorVisible(false)
+    import terminal._
+    enterPrivateMode()
 
-    if (flags.intro) {
-      val pos = TerminalPosition(5, 3)
-      terminal.setForegroundColor(TextColor.ANSI.GREEN_BRIGHT)
-      terminal.setCursorPosition(pos)
-      "Wake up, Neo...".foreach { c =>
-        terminal.putCharacter(c)
-        terminal.flush()
-        Thread.sleep(100)
+    if (flags.trace) {
+      setForegroundColor(TextColor.ANSI.GREEN_BRIGHT)
+      setCursorPosition(TerminalPosition(0, 0))
+      terminal.cursorBlinkOn()
+      terminal.sleep(5000)
+
+      "Call trans opt: received. 2-19-98 13:24:18 REC:Log>" foreach { c =>
+        putCharacter(c)
+        flush()
+        terminal.sleep(50)
       }
-      Thread.sleep(5000)
-      terminal.clearScreen()
-      terminal.setCursorPosition(pos)
-      "The Matrix has you...".foreach { c =>
-        terminal.putCharacter(c)
-        terminal.flush()
-        Thread.sleep(300)
+      terminal.sleep(1000)
+
+      setCursorPosition(TerminalPosition(0, 2))
+      "Trace program: running" foreach { c =>
+        putCharacter(c)
+        flush()
+        terminal.sleep(50)
       }
-      Thread.sleep(5000)
-      terminal.clearScreen()
-      terminal.setCursorPosition(pos)
-      "Follow the white rabbit.".foreach { c =>
-        terminal.putCharacter(c)
-        terminal.flush()
-        Thread.sleep(100)
-      }
-      Thread.sleep(5000)
-      terminal.clearScreen()
-      Thread.sleep(100)
-      terminal.setCursorPosition(pos)
-      terminal.putString("Knock, knock, Neo.")
-      terminal.flush()
-      Thread.sleep(5000)
-      terminal.clearScreen()
+      terminal.sleep(5000)
+      LazyList.cons
     }
 
-    terminal.setForegroundColor(TextColor.ANSI.WHITE_BRIGHT)
-    terminal.setCursorVisible(false)
+    if (flags.wakeUp) {
+      terminal.cursorHide()
+      setForegroundColor(TextColor.ANSI.GREEN_BRIGHT)
+      clearScreen()
+      val pos = TerminalPosition(5, 3)
+      setCursorPosition(pos)
+      "Wake up, Neo...".foreach { c =>
+        putCharacter(c)
+        flush()
+        terminal.sleep(100)
+      }
+      terminal.sleep(5000)
+      clearScreen()
+      setCursorPosition(pos)
+      "The Matrix has you...".foreach { c =>
+        putCharacter(c)
+        flush()
+        terminal.sleep(300)
+      }
+      terminal.sleep(5000)
+      clearScreen()
+      setCursorPosition(pos)
+      "Follow the white rabbit.".foreach { c =>
+        putCharacter(c)
+        flush()
+        terminal.sleep(100)
+      }
+      terminal.sleep(5000)
+      clearScreen()
+      terminal.sleep(100)
+      setCursorPosition(pos)
+      terminal.putString("Knock, knock, Neo.")
+      flush()
+      terminal.sleep(5000)
+    }
+
+    if (flags.trace2) {
+      clearScreen()
+      setForegroundColor(TextColor.ANSI.GREEN_BRIGHT)
+      setCursorPosition(TerminalPosition(0, 0))
+      terminal.cursorBlinkOn()
+      terminal.sleep(5000)
+
+      "Call trans opt: received. 9-18-99 14:32:21 REC:Log>" foreach { c =>
+        putCharacter(c)
+        flush()
+        terminal.sleep(50)
+      }
+      terminal.sleep(1000)
+      setCursorPosition(TerminalPosition(0, 1))
+      "WARNING: carrier anomaly" foreach { c =>
+        putCharacter(c)
+        flush()
+        terminal.sleep(50)
+      }
+      terminal.sleep(1000)
+      setCursorPosition(TerminalPosition(0, 2))
+      "Trace program: running" foreach { c =>
+        putCharacter(c)
+        flush()
+        terminal.sleep(50)
+      }
+      terminal.sleep(1000)
+      setCursorPosition(TerminalPosition(0, 4))
+      "SYSTEM FAILURE" foreach { c =>
+        putCharacter(c)
+        flush()
+        terminal.sleep(50)
+      }
+      terminal.sleep(5000)
+    }
+
+    setForegroundColor(TextColor.ANSI.WHITE_BRIGHT)
+    terminal.cursorHide()
 
     //frame interval with scheduler
     val scheduler = new java.util.concurrent.ScheduledThreadPoolExecutor(1)
-    val debugGraphics = terminal.newTextGraphics()
+    val debugGraphics = newTextGraphics()
     debugGraphics.setForegroundColor(TextColor.ANSI.RED_BRIGHT)
-    val rainGraphics = terminal.newTextGraphics()
+    val rainGraphics = newTextGraphics()
     rainGraphics.setForegroundColor(TextColor.ANSI.WHITE_BRIGHT)
     rainGraphics.setModifiers(util.EnumSet.of(SGR.BOLD))
     val lastInput = new AtomicReference[KeyStroke](KeyStroke.fromString("|"))
     var frameCounter: Int = 0
-    val terminalSize: TerminalSize = terminal.getTerminalSize
+    val terminalSize: TerminalSize = getTerminalSize
     val terminalSizeColumns = terminalSize.getColumns
     val terminalsSizeRows   = terminalSize.getRows
     val dropQuantity = (dropQuantityFactor * terminalSizeColumns).toInt
     val drops: Array[Array[Int]] = Array.fill(dropQuantity) {
-      newDrop(new Array[Int](5), terminalSizeColumns).tap(_(1) = Random.nextInt(terminalsSizeRows))
+      newDrop(new Array[Int](5), terminalSizeColumns)//.tap(_(1) = Random.nextInt(terminalsSizeRows))
     }
     val debugOn = (t: Terminal, input: KeyStroke) => {
       if (input != null) {
@@ -110,22 +173,23 @@ object Main {
         i <- 0 until 255
         index = new TextColor.Indexed(i)
       } {
-        t.setForegroundColor(index)
+        t.setForegroundColor(new TextColor.Indexed((i+16) %255))
+        t.setBackgroundColor(index)
         t.setCursorPosition(2 + (i+2) % 6 * 4, 8 + (i+2) / 6)
-        t.putCharacter('█')
         val str = f"$i%3d"
         str.foreach(t.putCharacter)
+        t.putCharacter('█')
       }
       t.setCursorPosition(bu)
       ()
     }
     val debugOff = (t: Terminal, input: KeyStroke) => {}
-    val debug: (Terminal, KeyStroke) => Unit  = debugOn
+    val debug: (Terminal, KeyStroke) => Unit = debugOff // debugOn
     //Array(positionX, positionY, velocityX, velocityY, color)
     val frameFn: Runnable = () => {
       val input = terminal.pollInput()
-      checkExit(input)
-      val terminalSize = terminal.getTerminalSize
+      terminal.checkExit(input)
+      val terminalSize = getTerminalSize
       val terminalSizeColumns = terminalSize.getColumns
       val terminalSizeRows = terminalSize.getRows
       var fx = 0
@@ -203,21 +267,21 @@ object Main {
         }
         dI += 1
       }
-//      debug(terminal, input)
-      terminal.flush()
+      debug(terminal, input)
+      flush()
       frameCounter += 1
     }
     val animationLoop: ScheduledFuture[?] = scheduler.scheduleAtFixedRate(frameFn, 0, frameInterval, java.util.concurrent.TimeUnit.MILLISECONDS)
     //shutdown handler
     Runtime.getRuntime.addShutdownHook(new Thread(() => {
       scheduler.shutdown()
-      terminal.setCursorVisible(true)
+      setCursorVisible(true)
     }))
     try {
       animationLoop.get()
     } catch {
       case e: Exception =>
-        terminal.close()
+        close()
         e.printStackTrace()
         System.exit(1)
     }
@@ -230,15 +294,6 @@ object Main {
     drop(3) = Math.min(Random.nextInt(8) + 1, Random.nextInt(8) + 1)
     drop(4) = Random.nextInt(2)
     drop
-  }
-
-  def checkExit(input: KeyStroke): Unit = {
-    if (input != null) {
-      val c = input.getCharacter
-      if (c == 'q' || c == 'Q' || c == 'c' || c == 'C') {
-        System.exit(0)
-      }
-    }
   }
 
   val colorMap = new util.HashMap[TextColor, TextColor]()
@@ -254,10 +309,62 @@ object Main {
     }
   }
 
+
+  private var _cursorBlinkOn  = false
+  private var cursorBlinkLast = System.currentTimeMillis()
+  private val cursorBlinkInterval = 300
+  private var cursorVisible = false
+
   extension (t: Terminal) {
+
     def putString(x: Int, y: Int, s: String): Unit = {
       t.setCursorPosition(x, y)
       s.foreach(t.putCharacter)
+    }
+    def sleep(millis: Int): Unit = {
+      (1 to millis/50) foreach { i =>
+        cursorBlink()
+        Thread.sleep(50)
+        checkExit()
+      }
+    }
+    def checkExit(): Unit = checkExit(t.pollInput())
+    def checkExit(input: KeyStroke): Unit = {
+      if (input != null) {
+        val c = input.getCharacter
+        if (c == 'q' || c == 'Q' || c == 'c' || c == 'C') {
+          System.exit(0)
+        }
+      }
+    }
+
+    def cursorHide(): Unit = {
+      _cursorBlinkOn = false
+      if (cursorVisible) {
+        t.setCursorVisible(false)
+        t.flush()
+      }
+      cursorVisible = false
+    }
+
+    def cursorShow(): Unit = {
+      _cursorBlinkOn = false
+      if (!cursorVisible) {
+        t.setCursorVisible(true)
+        t.flush()
+      }
+      cursorVisible = true
+    }
+
+    def cursorBlinkOn(): Unit = _cursorBlinkOn = true
+
+    def cursorBlink(): Unit = {
+      if (_cursorBlinkOn && System.currentTimeMillis() - cursorBlinkLast > cursorBlinkInterval) {
+        cursorBlinkLast = System.currentTimeMillis()
+        cursorVisible = !cursorVisible
+        t.setCursorVisible(cursorVisible)
+        t.flush()
+      }
     }
   }
 }
