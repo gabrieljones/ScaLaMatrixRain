@@ -1,3 +1,9 @@
+buildscript {
+  dependencyLocking {
+    lockAllConfigurations()
+  }
+}
+
 plugins {
   id("buildlogic.scala-application-conventions")
   id("com.gradleup.shadow") version "8.3.5"
@@ -10,4 +16,8 @@ dependencies {
 
 application {
   mainClass = "org.gabrieljones.scalarain.Main"
+}
+
+dependencyLocking {
+  lockAllConfigurations()
 }
