@@ -3,11 +3,15 @@ plugins {
   scala
 }
 
-dependencies {
-  constraints {
-    implementation("org.scala-lang:scala3-library_3:latest.release")
+scala {
+  scalaVersion = "3.7.0"
+}
+
+//workaround for https://github.com/gradle/gradle/issues/6854
+configurations.all {
+  if (name.startsWith("incrementalScalaAnalysis")) {
+    setExtendsFrom(emptyList())
   }
-  implementation("org.scala-lang:scala3-library_3")
 }
 
 testing {
