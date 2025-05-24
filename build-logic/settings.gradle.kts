@@ -4,4 +4,10 @@ dependencyResolutionManagement {
   }
 }
 
+buildscript {
+  dependencyLocking {
+    lockAllConfigurations()
+  }
+}
+
 rootProject.name = "build-logic"
