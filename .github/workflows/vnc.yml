@@ -3,6 +3,7 @@ name: VNC Screenshot
 on:
   push:
     branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build:
