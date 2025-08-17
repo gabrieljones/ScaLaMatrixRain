@@ -22,7 +22,7 @@ jobs:
         brew install imagemagick ffmpeg
     - name: Run Terminal.app and record screen
       run: |
-        osascript -e 'tell application "Terminal" to do script "slmatrix/build/native/nativeCompile/slmatrix --prelude="'
+        osascript -e 'tell application "Terminal" to do script "$(pwd)/slmatrix/build/native/nativeCompile/slmatrix --prelude="'
         sleep 10
         ffmpeg -y -video_size 1024x768 -framerate 12 -f avfoundation -i "1:none" -t 10 screen-macos.webm
     - uses: actions/upload-artifact@v4
