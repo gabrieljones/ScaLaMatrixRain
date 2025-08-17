@@ -1,11 +1,8 @@
 # This is a Gradle generated file for dependency locking.
 # Manual edits can break the build and are not advised.
 # This file is expected to be part of source control.
-com.fasterxml.jackson.core:jackson-annotations:2.13.5=classpath
-com.fasterxml.jackson.core:jackson-core:2.13.5=classpath
-com.fasterxml.jackson.core:jackson-databind:2.13.5=classpath
-com.fasterxml.jackson:jackson-bom:2.13.5=classpath
 com.fasterxml.woodstox:woodstox-core:7.1.0=classpath
+com.github.openjson:openjson:1.0.13=classpath
 com.gradleup.shadow:com.gradleup.shadow.gradle.plugin:9.0.2=classpath
 com.gradleup.shadow:shadow-gradle-plugin:9.0.2=classpath
 commons-io:commons-io:2.20.0=classpath
@@ -19,10 +16,10 @@ org.apache.maven:maven-xml:4.0.0-rc-3=classpath
 org.codehaus.plexus:plexus-utils:4.0.2=classpath
 org.codehaus.plexus:plexus-xml:4.1.0=classpath
 org.codehaus.woodstox:stax2-api:4.2.2=classpath
-org.graalvm.buildtools.native:org.graalvm.buildtools.native.gradle.plugin:0.10.3=classpath
-org.graalvm.buildtools:graalvm-reachability-metadata:0.10.3=classpath
-org.graalvm.buildtools:native-gradle-plugin:0.10.3=classpath
-org.graalvm.buildtools:utils:0.10.3=classpath
+org.graalvm.buildtools.native:org.graalvm.buildtools.native.gradle.plugin:0.11.0=classpath
+org.graalvm.buildtools:graalvm-reachability-metadata:0.11.0=classpath
+org.graalvm.buildtools:native-gradle-plugin:0.11.0=classpath
+org.graalvm.buildtools:utils:0.11.0=classpath
 org.jdom:jdom2:2.0.6.1=classpath
 org.ow2.asm:asm-commons:9.8=classpath
 org.ow2.asm:asm-tree:9.8=classpath
