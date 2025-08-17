@@ -24,7 +24,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y x11vnc xterm imagemagick xvfb fluxbox
+        sudo apt-get install -y x11vnc xterm imagemagick xvfb fluxbox ffmpeg
     - name: Run VNC and take screenshot
       run: |
         export DISPLAY=:99
@@ -33,9 +33,9 @@ jobs:
         x11vnc -display :99 -nopw -listen localhost -xkb &
         xterm -display :99 -fa 'Noto Sans Mono CJK JP' -fs 16 -bg black -geometry 1024x768+0+0 -e "slmatrix/build/native/nativeCompile/slmatrix --prelude=" &
         sleep 10
-        import -window root -display :99 screenshot.png
+        ffmpeg -y -video_size 1024x768 -framerate 12 -f x11grab -i :99 -t 10 screen.webm
     - name: Upload screenshot
       uses: actions/upload-artifact@v4
       with:
-        name: screenshot
-        path: screenshot.png
+        name: screen.webm
+        path: screen.webm
