@@ -1,8 +1,10 @@
 package org.gabrieljones.scalarain
 
+import caseapp._
 import com.googlecode.lanterna.input.KeyStroke
 import com.googlecode.lanterna.terminal.{DefaultTerminalFactory, Terminal}
 import com.googlecode.lanterna.*
+import Options._
 
 import java.util
 import java.util.concurrent.ScheduledFuture
@@ -10,7 +12,7 @@ import java.util.concurrent.atomic.AtomicReference
 import scala.util.Random
 import scala.util.chaining.scalaUtilChainingOps
 
-object Main {
+object Main extends CaseApp[Options] {
   val dropQuantityFactor: Double = 1
   val frameInterval = 50
   val fadeProbability = 25
@@ -29,13 +31,7 @@ object Main {
 
   def charFromSet: Char = sets(Random.nextInt(sets.length)).toChar
 
-  object flags {
-    val trace = true
-    val wakeUp = true
-    val trace2 = true
-  }
-
-  def main(args: Array[String]): Unit = {
+  def run(options: Options, remaining: RemainingArgs): Unit = {
 
     //lanterna copy screen
     val defaultTerminalFactory = new DefaultTerminalFactory()
@@ -43,11 +39,18 @@ object Main {
     import terminal._
     enterPrivateMode()
 
-    if (flags.trace) {
+
+    if (options.prelude.contains("cursorBlink")) {
       setForegroundColor(TextColor.ANSI.GREEN_BRIGHT)
       setCursorPosition(TerminalPosition(0, 0))
       terminal.cursorBlinkOn()
       terminal.sleep(5000)
+    }
+
+    if (options.prelude.contains("trace")) {
+      setForegroundColor(TextColor.ANSI.GREEN_BRIGHT)
+      setCursorPosition(TerminalPosition(0, 0))
+      terminal.cursorBlinkOn()
 
       "Call trans opt: received. 2-19-98 13:24:18 REC:Log>" foreach { c =>
         putCharacter(c)
@@ -63,10 +66,9 @@ object Main {
         terminal.sleep(50)
       }
       terminal.sleep(5000)
-      LazyList.cons
     }
 
-    if (flags.wakeUp) {
+    if (options.prelude.contains("wakeUp")) {
       terminal.cursorHide()
       setForegroundColor(TextColor.ANSI.GREEN_BRIGHT)
       clearScreen()
@@ -102,7 +104,7 @@ object Main {
       terminal.sleep(5000)
     }
 
-    if (flags.trace2) {
+    if (options.prelude.contains("traceFail")) {
       clearScreen()
       setForegroundColor(TextColor.ANSI.GREEN_BRIGHT)
       setCursorPosition(TerminalPosition(0, 0))
