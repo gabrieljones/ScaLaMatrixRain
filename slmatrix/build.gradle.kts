@@ -6,7 +6,7 @@ buildscript {
 
 plugins {
   id("buildlogic.scala-application-conventions")
-  id("com.gradleup.shadow") version "8.3.5"
+  id("com.gradleup.shadow") version "9.+"
   id("org.graalvm.buildtools.native") version "0.10.3"
 }
 
