@@ -6,6 +6,7 @@ buildscript {
   dependencyLocking {
     lockAllConfigurations()
     //these are expected to show up in settings-gradle.lockfile, but for some unknown reason it is empty
+    //TODO: remove these ignores when the underlying cause is resolved
     ignoredDependencies.add("org.gradle.toolchains.foojay-resolver-convention:*")
     ignoredDependencies.add("org.gradle.toolchains:foojay-resolver")
     ignoredDependencies.add("com.gradle.develocity:com.gradle.develocity.gradle.plugin")
