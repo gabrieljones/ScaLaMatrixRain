@@ -25,7 +25,7 @@ jobs:
       - name: Run cmd and record screen
         run: |
           $jar = Get-ChildItem slmatrix\build\libs\*-all.jar | Select-Object -First 1
-          Start-Process cmd "-Command java -jar $($jar.FullName) --prelude=trace,wakeUp,traceFail"
+          Start-Process cmd "/c java -jar $($jar.FullName) --prelude=trace,wakeUp,traceFail"
           Start-Sleep -Seconds 1
           ffmpeg -y -video_size 1024x768 -framerate 6 -f gdigrab -i desktop -t 30 screen-windows-cmd.webm
         shell: powershell
@@ -48,7 +48,7 @@ jobs:
       - name: Run WSL and record screen
         run: |
           $jar = Get-ChildItem slmatrix\build\libs\*-all.jar | Select-Object -First 1
-          Start-Process wsl "-d Ubuntu -e java -jar $($jar.FullName) --prelude="
+          Start-Process wt "-w 0 nt --title WSL --profile Ubuntu -- java -jar $($jar.FullName) --prelude="
           ffmpeg -y -video_size 1024x768 -framerate 12 -f gdigrab -i desktop -t 10 screen-windows-wsl.webm
         shell: powershell
       - uses: actions/upload-artifact@v4
