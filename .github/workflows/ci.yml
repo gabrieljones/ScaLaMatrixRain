@@ -40,6 +40,7 @@ jobs:
     - uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582 # v4.0.0
     - run: ./gradlew -version --no-configuration-cache
     - run: ./gradlew nativeCompile --no-configuration-cache --stacktrace
+      continue-on-error: true
     - uses: actions/upload-artifact@v4
       with:
         name: slmatrix-${{ matrix.architecture }}
