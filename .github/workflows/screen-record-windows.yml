@@ -25,9 +25,12 @@ jobs:
       - name: Run cmd and record screen
         run: |
           $jar = Get-ChildItem slmatrix\build\libs\*-all.jar | Select-Object -First 1
-          Start-Process cmd "/c java -jar $($jar.FullName) --prelude=trace,wakeUp,traceFail"
+          $cmd = "java -jar $($jar.FullName) --prelude=trace,wakeUp,traceFail"
+          $proc = Start-Process cmd "/c $cmd" -PassThru
           Start-Sleep -Seconds 1
-          ffmpeg -y -video_size 1024x768 -framerate 6 -f gdigrab -i desktop -t 30 screen-windows-cmd.webm
+          ffmpeg -y -video_size 1024x768 -framerate 6 -f gdigrab -i desktop -t 60 screen-windows-cmd.webm
+          Start-Sleep -Seconds 1
+          $proc | ForEach-Object { $_.StandardInput.WriteLine('q') }
         shell: powershell
       - uses: actions/upload-artifact@v4
         with:
@@ -35,11 +38,13 @@ jobs:
           path: screen-windows-cmd.webm
       - name: Run PowerShell and record screen
         run: |
-          $OutputEncoding = [System.Text.Encoding]::UTF8
           $jar = Get-ChildItem slmatrix\build\libs\*-all.jar | Select-Object -First 1
-          Start-Process powershell "-Command java -jar $($jar.FullName) --prelude=trace,wakeUp,traceFail"
+          $cmd = "java -jar $($jar.FullName) --prelude=trace,wakeUp,traceFail"
+          $proc = Start-Process powershell "-Command $cmd" -PassThru
           Start-Sleep -Seconds 1
-          ffmpeg -y -video_size 1024x768 -framerate 6 -f gdigrab -i desktop -t 30 screen-windows-powershell.webm
+          ffmpeg -y -video_size 1024x768 -framerate 6 -f gdigrab -i desktop -t 60 screen-windows-powershell.webm
+          Start-Sleep -Seconds 1
+          $proc | ForEach-Object { $_.StandardInput.WriteLine('q') }
         shell: powershell
       - uses: actions/upload-artifact@v4
         with:
