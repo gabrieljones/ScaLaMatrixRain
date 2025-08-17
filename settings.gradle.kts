@@ -13,6 +13,7 @@ buildscript {
 
 plugins {
   id("org.gradle.toolchains.foojay-resolver-convention") version "latest.release"
+  id("com.gradle.develocity") version "latest.release"
 }
 
 dependencyResolutionManagement {
@@ -26,3 +27,10 @@ rootProject.name = "ScaLaMatrixRain"
 include(
   "slmatrix",
 )
+
+develocity {
+  buildScan {
+    termsOfUseUrl.set("https://gradle.com/help/legal-terms-of-use")
+    termsOfUseAgree.set("yes")
+  }
+}
