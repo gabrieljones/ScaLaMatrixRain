@@ -22,14 +22,36 @@ jobs:
         run: |
           choco install imagemagick ffmpeg -y
         shell: powershell
-      - name: Run PowerShell and record screen
+      - name: Run cmd and record screen
         run: |
           $jar = Get-ChildItem slmatrix\build\libs\*-all.jar | Select-Object -First 1
-          Start-Process powershell "-Command java -jar $($jar.FullName) --prelude="
+          Start-Process cmd "-Command java -jar $($jar.FullName) --prelude="
           Start-Sleep -Seconds 10
-          ffmpeg -y -video_size 1024x768 -framerate 12 -f gdigrab -i desktop -t 10 screen-windows.webm
+          ffmpeg -y -video_size 1024x768 -framerate 12 -f gdigrab -i desktop -t 10 screen-windows-cmd.webm
         shell: powershell
       - uses: actions/upload-artifact@v4
         with:
-          name: screen-windows.webm
-          path: screen-windows.webm
+          name: screen-windows-cmd.webm
+          path: screen-windows-cmd.webm
+      - name: Run PowerShell and record screen
+        run: |
+          $OutputEncoding = [System.Text.Encoding]::UTF8
+          $jar = Get-ChildItem slmatrix\build\libs\*-all.jar | Select-Object -First 1
+          Start-Process powershell "-Command java -jar $($jar.FullName) --prelude="
+          Start-Sleep -Seconds 10
+          ffmpeg -y -video_size 1024x768 -framerate 12 -f gdigrab -i desktop -t 10 screen-windows-powershell.webm
+        shell: powershell
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screen-windows-powershell.webm
+          path: screen-windows-powershell.webm
+      - name: Run WSL and record screen
+        run: |
+          $jar = Get-ChildItem slmatrix\build\libs\*-all.jar | Select-Object -First 1
+          Start-Process wsl "-d Ubuntu -e java -jar $($jar.FullName) --prelude="
+          ffmpeg -y -video_size 1024x768 -framerate 12 -f gdigrab -i desktop -t 10 screen-windows-wsl.webm
+        shell: powershell
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screen-windows-wsl.webm
+          path: screen-windows-wsl.webm
