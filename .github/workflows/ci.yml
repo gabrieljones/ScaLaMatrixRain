@@ -23,7 +23,7 @@ jobs:
   build-native:
     strategy:
       matrix:
-        architecture: [ubuntu-latest, ARM64]
+        architecture: [ubuntu-latest, ARM64, macos-latest, windows-latest]
     runs-on: ${{ matrix.architecture }}
     permissions:
       contents: read
