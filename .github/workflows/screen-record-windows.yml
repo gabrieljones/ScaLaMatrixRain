@@ -8,7 +8,6 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: read
-
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -18,38 +17,86 @@ jobs:
       - uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582 # v4.0.0
       - run: ./gradlew shadowJar
         shell: bash
+      - name: Upload JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: slmatrix-jar
+          path: slmatrix/build/libs/*-all.jar
+
+  record-cmd:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '24'
+          distribution: 'temurin'
+      - uses: actions/download-artifact@v4
+        with:
+          name: slmatrix-jar
+          path: slmatrix/build/libs
       - name: Install dependencies
-        run: |
-          choco install imagemagick ffmpeg -y
+        run: choco install imagemagick ffmpeg -y
         shell: powershell
       - name: Run cmd and record screen
         run: |
           $jar = Get-ChildItem slmatrix\build\libs\*-all.jar | Select-Object -First 1
           $cmd = "java -jar $($jar.FullName) --prelude=trace,wakeUp,traceFail"
-          $proc = Start-Process cmd "/c $cmd" -PassThru
+          Start-Process cmd "/c $cmd"
           Start-Sleep -Seconds 1
           ffmpeg -y -video_size 1024x768 -framerate 6 -f gdigrab -i desktop -t 60 screen-windows-cmd.webm
-          Start-Sleep -Seconds 1
-          $proc | ForEach-Object { $_.StandardInput.WriteLine('q') }
         shell: powershell
       - uses: actions/upload-artifact@v4
         with:
           name: screen-windows-cmd.webm
           path: screen-windows-cmd.webm
+
+  record-powershell:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '24'
+          distribution: 'temurin'
+      - uses: actions/download-artifact@v4
+        with:
+          name: slmatrix-jar
+          path: slmatrix/build/libs
+      - name: Install dependencies
+        run: choco install imagemagick ffmpeg -y
+        shell: powershell
       - name: Run PowerShell and record screen
         run: |
           $jar = Get-ChildItem slmatrix\build\libs\*-all.jar | Select-Object -First 1
           $cmd = "java -jar $($jar.FullName) --prelude=trace,wakeUp,traceFail"
-          $proc = Start-Process powershell "-Command $cmd" -PassThru
+          Start-Process powershell "-Command $OutputEncoding = [System.Text.Encoding]::UTF8; $cmd"
           Start-Sleep -Seconds 1
           ffmpeg -y -video_size 1024x768 -framerate 6 -f gdigrab -i desktop -t 60 screen-windows-powershell.webm
-          Start-Sleep -Seconds 1
-          $proc | ForEach-Object { $_.StandardInput.WriteLine('q') }
         shell: powershell
       - uses: actions/upload-artifact@v4
         with:
           name: screen-windows-powershell.webm
           path: screen-windows-powershell.webm
+
+  record-wsl:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '24'
+          distribution: 'temurin'
+      - uses: actions/download-artifact@v4
+        with:
+          name: slmatrix-jar
+          path: slmatrix/build/libs
+      - name: Install dependencies
+        run: choco install imagemagick ffmpeg -y
+        shell: powershell
       - name: Run WSL and record screen
         run: |
           $jar = Get-ChildItem slmatrix\build\libs\*-all.jar | Select-Object -First 1
