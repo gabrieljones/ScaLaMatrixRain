@@ -1,0 +1,31 @@
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    permissions:
+      contents: read
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-java@v4
+      with:
+        java-version: '24'
+        distribution: 'graalvm'
+    - uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582 # v4.0.0
+    - run: ./gradlew nativeCompile --no-configuration-cache
+    - run: |
+        brew update
+        brew install imagemagick ffmpeg
+    - name: Run Terminal.app and record screen
+      run: |
+        osascript -e 'tell application "Terminal" to do script "slmatrix/build/native/nativeCompile/slmatrix --prelude="'
+        sleep 10
+        ffmpeg -y -video_size 1024x768 -framerate 12 -f avfoundation -i "1:none" -t 10 screen-macos.webm
+    - uses: actions/upload-artifact@v4
+      with:
+        name: screen-macos.webm
+        path: screen-macos.webm
