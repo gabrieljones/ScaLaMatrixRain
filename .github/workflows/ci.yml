@@ -12,7 +12,7 @@ jobs:
     - uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
-        java-version: '23'
+        java-version: '24'
     - uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582 # v4.0.0
     - run: ./gradlew shadowJar
     - uses: actions/upload-artifact@v4
@@ -31,7 +31,7 @@ jobs:
     - uses: actions/checkout@v4
     - uses: actions/setup-java@v4
       with:
-        java-version: '23'
+        java-version: '24'
         distribution: 'graalvm'
     - uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582 # v4.0.0
     - run: ./gradlew nativeCompile --no-configuration-cache
@@ -48,6 +48,6 @@ jobs:
     - uses: actions/checkout@v4
     - uses: actions/setup-java@v4
       with:
-        java-version: '23'
+        java-version: '24'
         distribution: 'graalvm'
     - uses: gradle/actions/dependency-submission@af1da67850ed9a4cedd57bfd976089dd991e2582 # v4.0.0
