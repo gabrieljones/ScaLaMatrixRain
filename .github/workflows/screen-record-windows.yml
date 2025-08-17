@@ -22,10 +22,10 @@ jobs:
         run: |
           choco install imagemagick ffmpeg -y
         shell: powershell
-      - name: Run Command Prompt and record screen
+      - name: Run PowerShell and record screen
         run: |
           $jar = Get-ChildItem slmatrix\build\libs\*-all.jar | Select-Object -First 1
-          Start-Process cmd "/c java -jar $($jar.FullName) --prelude="
+          Start-Process powershell "-Command java -jar $($jar.FullName) --prelude="
           Start-Sleep -Seconds 10
           ffmpeg -y -video_size 1024x768 -framerate 12 -f gdigrab -i desktop -t 10 screen-windows.webm
         shell: powershell
