@@ -11,7 +11,7 @@ plugins {
 }
 
 dependencies {
-  implementation("com.googlecode.lanterna:lanterna:3.1.2")
+  implementation("com.googlecode.lanterna:lanterna:3.+")
   implementation("com.github.alexarchambault:case-app_3:2.+")
 }
 
