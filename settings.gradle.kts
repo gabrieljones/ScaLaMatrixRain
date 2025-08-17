@@ -8,6 +8,8 @@ buildscript {
     //these are expected to show up in settings-gradle.lockfile, but for some unknown reason it is empty
     ignoredDependencies.add("org.gradle.toolchains.foojay-resolver-convention:*")
     ignoredDependencies.add("org.gradle.toolchains:foojay-resolver")
+    ignoredDependencies.add("com.gradle.develocity:com.gradle.develocity.gradle.plugin")
+    ignoredDependencies.add("com.gradle:develocity-gradle-plugin")
   }
 }
 
