@@ -95,7 +95,7 @@ jobs:
           name: slmatrix-jar
           path: slmatrix/build/libs
       - name: Install dependencies
-        run: choco install imagemagick ffmpeg -y
+        run: choco install microsoft-windows-terminal imagemagick ffmpeg -y
         shell: powershell
       - name: Run WSL and record screen
         run: |
