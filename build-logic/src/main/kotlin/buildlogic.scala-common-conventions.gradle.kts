@@ -27,3 +27,12 @@ java {
     languageVersion = JavaLanguageVersion.of(24)
   }
 }
+
+tasks {
+  compileJava {
+    options.release = 8
+  }
+  compileScala {
+    scalaCompileOptions.additionalParameters.add("-release:8")
+  }
+}
