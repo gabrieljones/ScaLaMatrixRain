@@ -40,14 +40,14 @@ object Main extends CaseApp[Options] {
     enterPrivateMode()
 
 
-    if (options.prelude.contains("cursorBlink")) {
+    if (options.scenes.contains("cursorBlink")) {
       setForegroundColor(TextColor.ANSI.GREEN_BRIGHT)
       setCursorPosition(TerminalPosition(0, 0))
       terminal.cursorBlinkOn()
       terminal.sleep(5000)
     }
 
-    if (options.prelude.contains("trace")) {
+    if (options.scenes.contains("trace")) {
       setForegroundColor(TextColor.ANSI.GREEN_BRIGHT)
       setCursorPosition(TerminalPosition(0, 0))
       terminal.cursorBlinkOn()
@@ -68,7 +68,7 @@ object Main extends CaseApp[Options] {
       terminal.sleep(5000)
     }
 
-    if (options.prelude.contains("wakeUp")) {
+    if (options.scenes.contains("wakeUp")) {
       terminal.cursorHide()
       setForegroundColor(TextColor.ANSI.GREEN_BRIGHT)
       clearScreen()
@@ -104,7 +104,7 @@ object Main extends CaseApp[Options] {
       terminal.sleep(5000)
     }
 
-    if (options.prelude.contains("traceFail")) {
+    if (options.scenes.contains("traceFail")) {
       clearScreen()
       setForegroundColor(TextColor.ANSI.GREEN_BRIGHT)
       setCursorPosition(TerminalPosition(0, 0))
@@ -139,6 +139,14 @@ object Main extends CaseApp[Options] {
       }
       terminal.sleep(5000)
     }
+
+    if (options.scenes.contains("rain")) {
+      //continue
+    } else {
+      return
+    }
+
+    //run rain scene until 'q' or 'c' is pressed
 
     setForegroundColor(TextColor.ANSI.WHITE_BRIGHT)
     terminal.cursorHide()
