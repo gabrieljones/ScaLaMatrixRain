@@ -153,8 +153,8 @@ object Main extends CaseApp[Options] {
 
     //frame interval with scheduler
     val scheduler = new java.util.concurrent.ScheduledThreadPoolExecutor(1)
-    val debugGraphics = newTextGraphics()
-    debugGraphics.setForegroundColor(TextColor.ANSI.RED_BRIGHT)
+    val testPatternGraphics = newTextGraphics()
+    testPatternGraphics.setForegroundColor(TextColor.ANSI.RED_BRIGHT)
     val rainGraphics = newTextGraphics()
     rainGraphics.setForegroundColor(TextColor.ANSI.WHITE_BRIGHT)
     rainGraphics.setModifiers(util.EnumSet.of(SGR.BOLD))
@@ -167,18 +167,18 @@ object Main extends CaseApp[Options] {
     val drops: Array[Array[Int]] = Array.fill(dropQuantity) {
       newDrop(new Array[Int](5), terminalSizeColumns)//.tap(_(1) = Random.nextInt(terminalsSizeRows))
     }
-    val debugOn = (t: Terminal, input: KeyStroke) => {
+    val testPatternOnFn = (t: Terminal, input: KeyStroke) => {
       if (input != null) {
         lastInput.set(input)
       }
       val ts: TerminalSize     = t.getTerminalSize
       val bu: TerminalPosition = t.getCursorPosition
-      debugGraphics.putString(2, 1, t.getClass.getName)
-      debugGraphics.putString(2, 2, ts.toString)
-      debugGraphics.putString(2, 3, bu.toString)
-      debugGraphics.putString(2, 4, frameCounter.toString)
-      debugGraphics.putString(2, 5, drops(0).mkString(","))
-      debugGraphics.putString(2, 6, lastInput.get().toString)
+      testPatternGraphics.putString(2, 1, t.getClass.getName)
+      testPatternGraphics.putString(2, 2, ts.toString)
+      testPatternGraphics.putString(2, 3, bu.toString)
+      testPatternGraphics.putString(2, 4, frameCounter.toString)
+      testPatternGraphics.putString(2, 5, drops(0).mkString(","))
+      testPatternGraphics.putString(2, 6, lastInput.get().toString)
       for {
         i <- 0 until 255
         index = new TextColor.Indexed(i)
@@ -193,8 +193,8 @@ object Main extends CaseApp[Options] {
       t.setCursorPosition(bu)
       ()
     }
-    val debugOff = (t: Terminal, input: KeyStroke) => {}
-    val debug: (Terminal, KeyStroke) => Unit = debugOff // debugOn
+    val testPatternOffFn = (t: Terminal, input: KeyStroke) => {}
+    val testPatternFn: (Terminal, KeyStroke) => Unit = if (options.testPattern) testPatternOnFn else testPatternOffFn
     //Array(positionX, positionY, velocityX, velocityY, color)
     val frameFn: Runnable = () => {
       val input = terminal.pollInput()
@@ -277,7 +277,7 @@ object Main extends CaseApp[Options] {
         }
         dI += 1
       }
-      debug(terminal, input)
+      testPatternFn(terminal, input)
       flush()
       frameCounter += 1
     }
