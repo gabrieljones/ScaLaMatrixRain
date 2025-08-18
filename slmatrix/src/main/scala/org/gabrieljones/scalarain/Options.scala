@@ -2,7 +2,6 @@ package org.gabrieljones.scalarain
 
 import caseapp.*
 import caseapp.core.argparser.{ArgParser, SimpleArgParser}
-import caseapp.core.argparser.ArgParser.*
 
 @AppName("ScaLaMatrixRain")
 @ProgName("slmatrix")
@@ -16,7 +15,9 @@ case class Options(
     "wakeUp",
     "traceFail",
     "rain",
-  )
+  ),
+  @HelpMessage("Display the test pattern during rain scene")
+  testPattern: Boolean = false,
 )
 
 object Options {
