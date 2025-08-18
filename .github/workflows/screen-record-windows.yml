@@ -42,7 +42,7 @@ jobs:
       - name: Run cmd and record screen
         run: |
           $jar = Get-ChildItem slmatrix\build\libs\*-all.jar | Select-Object -First 1
-          $cmd = "java -jar $($jar.FullName) --prelude=trace,wakeUp,traceFail"
+          $cmd = "java -jar $($jar.FullName) --prelude=wakeUp"
           Start-Process cmd "/c $cmd"
           Start-Sleep -Seconds 1
           ffmpeg -y -video_size 1024x768 -framerate 6 -f gdigrab -i desktop -t 60 screen-windows-cmd.webm
@@ -71,7 +71,7 @@ jobs:
       - name: Run PowerShell and record screen
         run: |
           $jar = Get-ChildItem slmatrix\build\libs\*-all.jar | Select-Object -First 1
-          $cmd = "java -jar $($jar.FullName) --prelude=trace,wakeUp,traceFail"
+          $cmd = "java -jar $($jar.FullName) --prelude=wakeUp"
           Start-Process powershell "-Command $OutputEncoding = [System.Text.Encoding]::UTF8; $cmd"
           Start-Sleep -Seconds 1
           ffmpeg -y -video_size 1024x768 -framerate 6 -f gdigrab -i desktop -t 60 screen-windows-powershell.webm
