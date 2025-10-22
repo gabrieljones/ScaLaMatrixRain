@@ -1,10 +1,11 @@
 package org.gabrieljones.scalarain
 
-import caseapp._
+import caseapp.*
 import com.googlecode.lanterna.input.KeyStroke
 import com.googlecode.lanterna.terminal.{DefaultTerminalFactory, Terminal}
 import com.googlecode.lanterna.*
-import Options._
+import Options.*
+import org.gabrieljones.scalarain.Physics.Vector2
 
 import java.util
 import java.util.concurrent.ScheduledFuture
@@ -165,9 +166,17 @@ object Main extends CaseApp[Options] {
     val terminalSize: TerminalSize = getTerminalSize
     val terminalSizeColumns = terminalSize.getColumns
     val terminalsSizeRows   = terminalSize.getRows
+
+    val acceleration: Physics.Acceleration =
+      Physics.Acceleration.Rain(terminalSizeColumns, terminalsSizeRows)
+//      Physics.Acceleration.Gravity(terminalSizeColumns, terminalsSizeRows)
+//      Physics.Acceleration.GravityCenter(terminalSizeColumns/2, terminalsSizeRows/2, 2)
+//      Physics.Acceleration.Warp(terminalSizeColumns, terminalsSizeRows)
+//      Physics.Acceleration.Spiral(terminalSizeColumns, terminalsSizeRows, -1.4)
+
     val dropQuantity = (dropQuantityFactor * terminalSizeColumns).toInt
     val drops: Array[Array[Int]] = Array.fill(dropQuantity) {
-      newDrop(new Array[Int](5), terminalSizeColumns)//.tap(_(1) = Random.nextInt(terminalsSizeRows))
+      newDrop(new Array[Int](5), acceleration.startPosition, acceleration.startVector, terminalSizeColumns, terminalsSizeRows)//.tap(_(1) = Random.nextInt(terminalsSizeRows))
     }
     val testPatternOnFn = (t: Terminal, input: KeyStroke) => {
       if (input != null) {
@@ -258,23 +267,14 @@ object Main extends CaseApp[Options] {
             rainGraphics.setCharacter(pXC, pYC, new TextCharacter(char, fade(TextColor.ANSI.WHITE_BRIGHT), TextColor.ANSI.DEFAULT))
           }
         }
-        {// randomly accelerate
-          val vvY   = Random.between(-32, 32) / 31 //accelerate = -1, 0, or 1, make changes less likely
-          val vYNew = vY + vvY
-          if (vYNew > 0 && vYNew < 32) { //if new velocity is in bounds update
-            drop(3) = vYNew
-          }
-//          {// accelerate in x dimension, wind
-//            val vvX   = Random.between(-32, 32) / 31 //accelerate = -1, 0, or 1, make changes less likely
-//            val vXNew = vX + vvX
-//            if (vXNew > -3 && vXNew < 0) {
-//              drop(2) = vXNew
-//            }
-//          }
+        {
+          val vec = acceleration.apply(vX, vY, pXC, pYC)
+          drop(2) = vec.x
+          drop(3) = vec.y
         }
         {//if drop is off-screen then replace with new drop
-          if (drop(0) < 0 || drop(1) < 0 || drop(0) > terminalSizeColumns || drop(1) > terminalSizeRows) {
-            newDrop(drop, terminalSizeColumns)
+          if (acceleration.outOfBounds(drop(0), drop(1))) {
+            newDrop(drop, acceleration.newPosition, acceleration.startVector, terminalSizeColumns, terminalsSizeRows)
           }
         }
         dI += 1
@@ -299,11 +299,11 @@ object Main extends CaseApp[Options] {
     }
   }
 
-  def newDrop(drop: Array[Int], terminalSizeColumns: Int): Array[Int] = {
-    drop(0) = Random.nextInt(terminalSizeColumns - 1)/ 2 * 2
-    drop(1) = 0
-    drop(2) = 0 //Random.nextInt(5) - 3
-    drop(3) = Math.min(Random.nextInt(8) + 1, Random.nextInt(8) + 1)
+  def newDrop(drop: Array[Int], pos: Vector2, vel: Vector2, terminalSizeColumns: Int, terminalSizeRows: Int): Array[Int] = {
+    drop(0) = pos.x
+    drop(1) = pos.y
+    drop(2) = vel.x
+    drop(3) = vel.y
     drop(4) = Random.nextInt(2)
     drop
   }
