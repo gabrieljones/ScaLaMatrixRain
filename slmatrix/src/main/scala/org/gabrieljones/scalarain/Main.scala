@@ -39,6 +39,7 @@ object Main extends CaseApp[Options] {
     import terminal._
     enterPrivateMode()
 
+    terminal.cursorShow()
 
     if (options.scenes.contains("cursorBlink")) {
       setForegroundColor(TextColor.ANSI.GREEN_BRIGHT)
@@ -149,6 +150,7 @@ object Main extends CaseApp[Options] {
     //run rain scene until 'q' or 'c' is pressed
 
     setForegroundColor(TextColor.ANSI.WHITE_BRIGHT)
+
     terminal.cursorHide()
 
     //frame interval with scheduler
