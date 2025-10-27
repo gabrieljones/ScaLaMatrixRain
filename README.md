@@ -12,6 +12,21 @@
 ./gradlew shadowJar && java -jar slmatrix/build/libs/slmatrix-all.jar
 ```
 
+## Usage
+
+```shell
+Usage: slmatrix [options]
+
+Help options:
+  --usage            Print usage and exit
+  -h, -help, --help  Print help message and exit
+
+Other options:
+  --scenes cursorBlink,trace,wakeUp,traceFail,rain  Which scenes to run
+  --physics rain,warp,spiral                     Which physics to use
+  --test-pattern                                 Display the test pattern during rain scene
+```
+
 ## Native
 
 ### Setup GraalVM

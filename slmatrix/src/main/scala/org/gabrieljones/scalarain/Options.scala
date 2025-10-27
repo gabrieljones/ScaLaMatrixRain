@@ -16,6 +16,9 @@ case class Options(
     "traceFail",
     "rain",
   ),
+  @HelpMessage("Which physics to use")
+  @ValueDescription("rain,warp,spiral")
+  physics: String = "rain",
   @HelpMessage("Display the test pattern during rain scene")
   testPattern: Boolean = false,
 )

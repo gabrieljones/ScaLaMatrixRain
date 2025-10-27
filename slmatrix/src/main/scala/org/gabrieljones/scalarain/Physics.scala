@@ -63,7 +63,7 @@ object Physics {
 
       override def newPosition: Vector2 = Vector2(Random.nextInt(w), 0)
 
-      override def outOfBounds(x: Int, y: Int): Boolean = y > h - 3
+      override def outOfBounds(x: Int, y: Int): Boolean = y > h
     }
 
     case class GravityCenter(w: Int, h: Int, strength: Int) extends Acceleration {

@@ -167,12 +167,11 @@ object Main extends CaseApp[Options] {
     val terminalSizeColumns = terminalSize.getColumns
     val terminalsSizeRows   = terminalSize.getRows
 
-    val acceleration: Physics.Acceleration =
-      Physics.Acceleration.Rain(terminalSizeColumns, terminalsSizeRows)
-//      Physics.Acceleration.Gravity(terminalSizeColumns, terminalsSizeRows)
-//      Physics.Acceleration.GravityCenter(terminalSizeColumns/2, terminalsSizeRows/2, 2)
-//      Physics.Acceleration.Warp(terminalSizeColumns, terminalsSizeRows)
-//      Physics.Acceleration.Spiral(terminalSizeColumns, terminalsSizeRows, -1.4)
+    val acceleration: Physics.Acceleration = options.physics match {
+      case "rain"   => Physics.Acceleration.Rain(terminalSizeColumns, terminalsSizeRows)
+      case "spiral" => Physics.Acceleration.Spiral(terminalSizeColumns, terminalsSizeRows, -1.4)
+      case "warp"   => Physics.Acceleration.Warp(terminalSizeColumns, terminalsSizeRows)
+    }
 
     val dropQuantity = (dropQuantityFactor * terminalSizeColumns).toInt
     val drops: Array[Array[Int]] = Array.fill(dropQuantity) {
