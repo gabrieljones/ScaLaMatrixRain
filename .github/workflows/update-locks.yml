@@ -11,26 +11,28 @@ jobs:
   update-locks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Set up JDK
-        uses: actions/setup-java@v4
-        with:
-          java-version: '25'
-          distribution: 'temurin'
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        java-version: '25'
+        distribution: 'temurin'
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v4
 
-      - name: Update Locks
-        run: ./gradlew dependenciesResolveAndLockAll --write-locks
+    - name: Update Locks
+      run: ./gradlew dependenciesResolveAndLockAll --write-locks
 
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
-        with:
-          commit-message: "./gradlew dependenciesResolveAndLockAll --write-locks"
-          title: "Update Dependency Locks"
-          body: "Automated update of dependency lockfiles."
-          branch: "update-locks/${{ github.ref_name }}"
-          base: "${{ github.ref_name }}"
-          delete-branch: true
+    - run: git status
+
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v6
+      with:
+        commit-message: "./gradlew dependenciesResolveAndLockAll --write-locks"
+        title: "Update Dependency Locks"
+        body: "Automated update of dependency lockfiles."
+        branch: "update-locks/${{ github.ref_name }}"
+        base: "${{ github.ref_name }}"
+        delete-branch: true
