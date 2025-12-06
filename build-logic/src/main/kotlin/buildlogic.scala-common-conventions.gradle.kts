@@ -4,7 +4,7 @@ plugins {
 }
 
 scala {
-  scalaVersion = "3.7.2"
+  scalaVersion = "3.7.4"
 }
 
 //workaround for https://github.com/gradle/gradle/issues/6854
