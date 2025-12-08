@@ -19,13 +19,12 @@ jobs:
     - run: ./gradlew nativeCompile --no-configuration-cache
     - run: |
         sudo apt-get update
-        sudo apt-get install -y x11vnc xterm imagemagick xvfb fluxbox ffmpeg
-    - name: Run xterm in VNC and record screen
+        sudo apt-get install -y xterm imagemagick xvfb fluxbox ffmpeg
+    - name: Run xterm and record screen
       run: |
         export DISPLAY=:99
         Xvfb :99 -screen 0 1024x768x24 &
         fluxbox &
-        x11vnc -display :99 -nopw -listen localhost -xkb &
         xterm -display :99 -fa 'Noto Sans Mono CJK JP' -fs 16 -bg black -geometry 78x27+0+0 -e "slmatrix/build/native/nativeCompile/slmatrix --scenes=rain" &
         sleep 10
         ffmpeg -y -video_size 1024x768 -framerate 12 -f x11grab -i :99 -t 10 screen-ubuntu.webm
