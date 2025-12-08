@@ -23,7 +23,7 @@ jobs:
       uses: gradle/actions/setup-gradle@v4
 
     - name: Update Locks
-      run: ./gradlew dependenciesResolveAndLockAll --write-locks
+      run: ./gradlew dependenciesResolveAndLockAll shadowJar --write-locks
 
     - run: git status
 
