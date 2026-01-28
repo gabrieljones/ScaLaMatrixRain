@@ -1,5 +1,6 @@
 plugins {
   id("buildlogic.dependency-milestone-fix")
+  id("buildlogic.dependency-locking")
   scala
 }
 
