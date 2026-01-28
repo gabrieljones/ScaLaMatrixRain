@@ -4,7 +4,7 @@ plugins {
 }
 
 scala {
-  scalaVersion = "3.7.4"
+  scalaVersion = "3.8.1"
 }
 
 //workaround for https://github.com/gradle/gradle/issues/6854
@@ -30,9 +30,9 @@ java {
 
 tasks {
   compileJava {
-    options.release = 8
+    options.release = 17
   }
   compileScala {
-    scalaCompileOptions.additionalParameters.add("-release:8")
+    scalaCompileOptions.additionalParameters.add("-release:17")
   }
 }
