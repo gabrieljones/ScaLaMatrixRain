@@ -18,21 +18,9 @@ object Main extends CaseApp[Options] {
   val frameInterval = 50
   val fadeProbability = 25
   val glitchProbability = 25
-  val sets: Array[Int] = Array(
-    0x30A0 to 0x30FF, //katakana unicode range
-    0xFF10 to 0xFF19, //full width numbers
-//    0x1F000 to 0x1FAFF, //emoji unicode range
-//    0x41 to 0x5A, //ascii capital letters
-//    0x2200 to 0x22FF, //math symbols
-//    0x21 to 0x2F, //ascii punctuation
-//    0xFF66 to 0xFF9D, //half width katakana
-//    0x30 to 0x39, //ascii numbers
-  )
-    .flatten
-
-  def charFromSet: Char = sets(Random.nextInt(sets.length)).toChar
-
   def run(options: Options, remaining: RemainingArgs): Unit = {
+    val sets: Array[Int] = Options.parseWeightedSets(options.unicodeChars)
+    def charFromSet: Char = sets(Random.nextInt(sets.length)).toChar
 
     //lanterna copy screen
     val defaultTerminalFactory = new DefaultTerminalFactory()
