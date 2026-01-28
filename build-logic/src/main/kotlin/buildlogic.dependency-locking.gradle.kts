@@ -8,13 +8,13 @@ tasks.register("dependenciesResolve") {
 
 //adapted from https://docs.gradle.org/current/userguide/dependency_locking.html#lock_all_configurations_in_one_build_execution
 tasks.register("dependenciesResolveAndLockAll") {
-  val resolvableConfigurations = configurations.filter { it.isCanBeResolved }
+  val resolvableConfigurations: List<FileCollection> = project.configurations.filter { it.isCanBeResolved }
   val isWriteDependencyLocks = gradle.startParameter.isWriteDependencyLocks
   doFirst {
     require(isWriteDependencyLocks) { "$path must be run from the command line with the `--write-locks` flag" }
   }
   doLast {
-    resolvableConfigurations.forEach { it.resolve() }
+    resolvableConfigurations.forEach { it.files }
   }
 }
 
