@@ -94,4 +94,35 @@ class OptionsTest {
     assertTrue(result.contains('A'.toInt))
     assertEquals(2, result.count(_ == '0'.toInt))
   }
+
+  @Test
+  def testInvalidWeight(): Unit = {
+    val input = "A:notanumber"
+    assertDoesNotThrow(() => Options.parseWeightedSets(input))
+  }
+
+  @Test
+  def testInvalidFormat(): Unit = {
+    val input = "A:1:2"
+    assertDoesNotThrow(() => Options.parseWeightedSets(input))
+  }
+
+  @Test
+  def testInvalidRange(): Unit = {
+    val input = "A-B-C"
+    assertDoesNotThrow(() => Options.parseWeightedSets(input))
+  }
+
+  @Test
+  def testInvalidChar(): Unit = {
+    val input = "Invalid"
+    assertDoesNotThrow(() => Options.parseWeightedSets(input))
+  }
+
+  @Test
+  def testNegativeWeight(): Unit = {
+    val input = "A:-1"
+    assertDoesNotThrow(() => Options.parseWeightedSets(input))
+    assertEquals(0, Options.parseWeightedSets(input).length)
+  }
 }

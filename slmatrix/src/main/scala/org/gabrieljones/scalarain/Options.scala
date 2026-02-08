@@ -46,23 +46,31 @@ object Options {
 
   def parseWeightedSets(input: String): Array[Int] = {
     input.split(",").flatMap { part =>
-      val (identifier, weight) = part.split(":") match {
-        case Array(r, w) => (r.trim, w.trim.toInt)
-        case Array(r) => (r.trim, 1)
-      }
+      scala.util.Try {
+        val (identifier, weight) = part.split(":") match {
+          case Array(r, w) => (r.trim, w.trim.toInt)
+          case Array(r) => (r.trim, 1)
+          case _ => throw new IllegalArgumentException(s"Invalid weighted set format: $part")
+        }
 
-      val codes: Seq[Int] = if (namedSets.contains(identifier)) {
-        namedSets(identifier)
-      } else if (identifier.contains("-")) {
-        val Array(startStr, endStr) = identifier.split("-")
-        val start = parseChar(startStr.trim)
-        val end = parseChar(endStr.trim)
-        (start to end)
-      } else {
-        Seq(parseChar(identifier))
-      }
+        if (weight < 0) throw new IllegalArgumentException(s"Negative weight: $weight")
 
-      Iterator.fill(weight)(codes).flatten
+        val codes: Seq[Int] = if (namedSets.contains(identifier)) {
+          namedSets(identifier)
+        } else if (identifier.contains("-")) {
+          identifier.split("-") match {
+            case Array(startStr, endStr) =>
+              val start = parseChar(startStr.trim)
+              val end = parseChar(endStr.trim)
+              (start to end)
+            case _ => throw new IllegalArgumentException(s"Invalid range format: $identifier")
+          }
+        } else {
+          Seq(parseChar(identifier))
+        }
+
+        Iterator.fill(weight)(codes).flatten
+      }.getOrElse(Nil)
     }.toArray
   }
 
