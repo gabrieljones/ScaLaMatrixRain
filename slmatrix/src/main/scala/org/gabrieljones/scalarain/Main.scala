@@ -10,7 +10,7 @@ import org.gabrieljones.scalarain.Physics.Vector2
 import java.util
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.atomic.AtomicReference
-import scala.util.Random
+import java.util.concurrent.ThreadLocalRandom
 import scala.util.chaining.scalaUtilChainingOps
 
 object Main extends CaseApp[Options] {
@@ -20,7 +20,7 @@ object Main extends CaseApp[Options] {
   val glitchProbability = 25
   def run(options: Options, remaining: RemainingArgs): Unit = {
     val sets: Array[Int] = Options.parseWeightedSets(options.unicodeChars)
-    def charFromSet: Char = sets(Random.nextInt(sets.length)).toChar
+    def charFromSet: Char = sets(ThreadLocalRandom.current().nextInt(sets.length)).toChar
 
     //lanterna copy screen
     val defaultTerminalFactory = new DefaultTerminalFactory()
@@ -163,7 +163,7 @@ object Main extends CaseApp[Options] {
 
     val dropQuantity = (dropQuantityFactor * terminalSizeColumns).toInt
     val drops: Array[Array[Int]] = Array.fill(dropQuantity) {
-      newDrop(new Array[Int](5), acceleration.startPosition, acceleration.startVector, terminalSizeColumns, terminalsSizeRows)//.tap(_(1) = Random.nextInt(terminalsSizeRows))
+      newDrop(new Array[Int](5), acceleration.startPosition, acceleration.startVector, terminalSizeColumns, terminalsSizeRows)//.tap(_(1) = ThreadLocalRandom.current().nextInt(terminalsSizeRows))
     }
     val testPatternOnFn = (t: Terminal, input: KeyStroke) => {
       if (input != null) {
@@ -205,9 +205,9 @@ object Main extends CaseApp[Options] {
       while (fy < terminalSizeRows) {
         while (fx < terminalSizeColumns) {
           val charCur = rainGraphics.getCharacter(fx, fy)
-          if (charCur != null && charCur != TextCharacter.DEFAULT_CHARACTER && Random.nextInt(100) < fadeProbability) {
+          if (charCur != null && charCur != TextCharacter.DEFAULT_CHARACTER && ThreadLocalRandom.current().nextInt(100) < fadeProbability) {
             val colorCur = charCur.getForegroundColor
-            val glitchInsteadOfFade = Random.nextInt(100) < glitchProbability
+            val glitchInsteadOfFade = ThreadLocalRandom.current().nextInt(100) < glitchProbability
             val colorNew = if (glitchInsteadOfFade) colorCur else fade(colorCur)
             if (colorNew.getGreen > 1) {
               val charGlitched = if (glitchInsteadOfFade) charFromSet else charCur.getCharacter
@@ -291,7 +291,7 @@ object Main extends CaseApp[Options] {
     drop(1) = pos.y
     drop(2) = vel.x
     drop(3) = vel.y
-    drop(4) = Random.nextInt(2)
+    drop(4) = ThreadLocalRandom.current().nextInt(2)
     drop
   }
 

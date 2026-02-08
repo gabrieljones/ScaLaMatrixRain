@@ -1,7 +1,7 @@
 package org.gabrieljones.scalarain
 
 import java.math.MathContext
-import scala.util.Random
+import java.util.concurrent.ThreadLocalRandom
 
 object Physics {
   opaque type Vector2 = Long
@@ -35,9 +35,9 @@ object Physics {
 
       override def startVector: Vector2 = Vector2(0, 32)
 
-      override def startPosition: Vector2 = Vector2(Random.nextInt(w), Random.nextInt(h))
+      override def startPosition: Vector2 = Vector2(ThreadLocalRandom.current().nextInt(w), ThreadLocalRandom.current().nextInt(h))
 
-      override def newPosition: Vector2 = Vector2(Random.nextInt(w), 0)
+      override def newPosition: Vector2 = Vector2(ThreadLocalRandom.current().nextInt(w), 0)
 
       override def outOfBounds(x: Int, y: Int): Boolean = {
         math.abs(x - centerX) < 2 && math.abs(y - centerY) < 2
@@ -47,7 +47,7 @@ object Physics {
     case class Rain(w: Int, h: Int) extends Acceleration {
 
       override def apply(vX: Int, vY: Int, x: Int, y: Int): Vector2 = {
-        val deltaY = Random.between(-32, 32) / 31 //accelerate = -1, 0, or 1, make changes less likely
+        val deltaY = ThreadLocalRandom.current().nextInt(-32, 32) / 31 //accelerate = -1, 0, or 1, make changes less likely
         val vYNew = vY + deltaY
         val vYClamped = if (vYNew > 0 && vYNew < 32) { //if new velocity is in bounds update
           vYNew
@@ -57,11 +57,11 @@ object Physics {
         Vector2(vX, vYClamped)
       }
 
-      override def startVector: Vector2 = Vector2(0, Math.min(Random.nextInt(8) + 1, Random.nextInt(8) + 1)) //Vector2(0, Random.nextInt(32))
+      override def startVector: Vector2 = Vector2(0, Math.min(ThreadLocalRandom.current().nextInt(8) + 1, ThreadLocalRandom.current().nextInt(8) + 1)) //Vector2(0, ThreadLocalRandom.current().nextInt(32))
 
-      override def startPosition: Vector2 = Vector2(Random.nextInt(w), Random.nextInt(h))
+      override def startPosition: Vector2 = Vector2(ThreadLocalRandom.current().nextInt(w), ThreadLocalRandom.current().nextInt(h))
 
-      override def newPosition: Vector2 = Vector2(Random.nextInt(w), 0)
+      override def newPosition: Vector2 = Vector2(ThreadLocalRandom.current().nextInt(w), 0)
 
       override def outOfBounds(x: Int, y: Int): Boolean = y > h
     }
@@ -99,7 +99,7 @@ object Physics {
     case class Warp(w: Int, h: Int) extends Acceleration {
       override def apply(vX: Int, vY: Int, x: Int, y: Int): Vector2 = Vector2(vX, vY)
 
-      override def startVector: Vector2 = Vector2(Random.between(-27, 27) / 2, Random.between(-59, 59) / 2)
+      override def startVector: Vector2 = Vector2(ThreadLocalRandom.current().nextInt(-27, 27) / 2, ThreadLocalRandom.current().nextInt(-59, 59) / 2)
 
       override def startPosition: Vector2 = Vector2(w / 2, h / 2)
 
@@ -132,7 +132,7 @@ object Physics {
 
       override def startVector: Vector2 = Vector2(0, 0)
 
-      override def startPosition: Vector2 = Vector2(Random.nextInt(w), Random.nextInt(h))
+      override def startPosition: Vector2 = Vector2(ThreadLocalRandom.current().nextInt(w), ThreadLocalRandom.current().nextInt(h))
 
       override def newPosition: Vector2 = edgeOfScreen(w, h)
 
@@ -143,12 +143,12 @@ object Physics {
     }
 
     def edgeOfScreen(w: Int, h: Int): Vector2 = {
-      val side = Random.nextInt(4)
+      val side = ThreadLocalRandom.current().nextInt(4)
       side match {
-        case 0 => Vector2(Random.nextInt(w), 0) //top
-        case 1 => Vector2(w - 4, Random.nextInt(h)) //right
-        case 2 => Vector2(Random.nextInt(w), h - 2) //bottom
-        case 3 => Vector2(0, Random.nextInt(h)) //left
+        case 0 => Vector2(ThreadLocalRandom.current().nextInt(w), 0) //top
+        case 1 => Vector2(w - 4, ThreadLocalRandom.current().nextInt(h)) //right
+        case 2 => Vector2(ThreadLocalRandom.current().nextInt(w), h - 2) //bottom
+        case 3 => Vector2(0, ThreadLocalRandom.current().nextInt(h)) //left
       }
     }
   }
