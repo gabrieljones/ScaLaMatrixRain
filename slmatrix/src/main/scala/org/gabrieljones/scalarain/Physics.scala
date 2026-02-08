@@ -1,6 +1,5 @@
 package org.gabrieljones.scalarain
 
-import java.math.MathContext
 import scala.util.Random
 
 object Physics {
