@@ -1,6 +1,5 @@
 package org.gabrieljones.scalarain
 
-import java.math.MathContext
 import java.util.concurrent.ThreadLocalRandom
 
 object Physics {
