@@ -200,21 +200,25 @@ object Main extends CaseApp[Options] {
       val terminalSize = getTerminalSize
       val terminalSizeColumns = terminalSize.getColumns
       val terminalSizeRows = terminalSize.getRows
+      val rng = ThreadLocalRandom.current()
       var fx = 0
       var fy = 0
       while (fy < terminalSizeRows) {
         while (fx < terminalSizeColumns) {
-          val charCur = rainGraphics.getCharacter(fx, fy)
-          if (charCur != null && charCur != TextCharacter.DEFAULT_CHARACTER && ThreadLocalRandom.current().nextInt(100) < fadeProbability) {
-            val colorCur = charCur.getForegroundColor
-            val glitchInsteadOfFade = ThreadLocalRandom.current().nextInt(100) < glitchProbability
-            val colorNew = if (glitchInsteadOfFade) colorCur else fade(colorCur)
-            if (colorNew.getGreen > 1) {
-              val charGlitched = if (glitchInsteadOfFade) charFromSet else charCur.getCharacter
-              val charNew = new TextCharacter(charGlitched, colorNew, charCur.getBackgroundColor)
-              rainGraphics.setCharacter(fx, fy, charNew)
-            } else {
-              rainGraphics.setCharacter(fx, fy, TextCharacter.DEFAULT_CHARACTER)
+          // Optimization: Check probability first to avoid expensive getCharacter calls
+          if (rng.nextInt(100) < fadeProbability) {
+            val charCur = rainGraphics.getCharacter(fx, fy)
+            if (charCur != null && charCur != TextCharacter.DEFAULT_CHARACTER) {
+              val colorCur = charCur.getForegroundColor
+              val glitchInsteadOfFade = rng.nextInt(100) < glitchProbability
+              val colorNew = if (glitchInsteadOfFade) colorCur else fade(colorCur)
+              if (colorNew.getGreen > 1) {
+                val charGlitched = if (glitchInsteadOfFade) charFromSet else charCur.getCharacter
+                val charNew = new TextCharacter(charGlitched, colorNew, charCur.getBackgroundColor)
+                rainGraphics.setCharacter(fx, fy, charNew)
+              } else {
+                rainGraphics.setCharacter(fx, fy, TextCharacter.DEFAULT_CHARACTER)
+              }
             }
           }
           fx += 1
