@@ -203,14 +203,17 @@ object Main extends CaseApp[Options] {
       val rng = ThreadLocalRandom.current()
       var fx = 0
       var fy = 0
+      val fadeThreshold = (fadeProbability * 128) / 100
+      val glitchThreshold = (glitchProbability * 128) / 100
       while (fy < terminalSizeRows) {
         while (fx < terminalSizeColumns) {
-          // Optimization: Check probability first to avoid expensive getCharacter calls
-          if (rng.nextInt(100) < fadeProbability) {
+          // Optimization: Use bitwise mask (0..127) to approximate probability check
+          // significantly faster than nextInt(100) which involves modulo
+          if ((rng.nextInt() & 127) < fadeThreshold) {
             val charCur = rainGraphics.getCharacter(fx, fy)
             if (charCur != null && charCur != TextCharacter.DEFAULT_CHARACTER) {
               val colorCur = charCur.getForegroundColor
-              val glitchInsteadOfFade = rng.nextInt(100) < glitchProbability
+              val glitchInsteadOfFade = (rng.nextInt() & 127) < glitchThreshold
               val colorNew = if (glitchInsteadOfFade) colorCur else fade(colorCur)
               if (colorNew.getGreen > 1) {
                 val charGlitched = if (glitchInsteadOfFade) charFromSet else charCur.getCharacter
