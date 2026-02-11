@@ -305,8 +305,10 @@ object Main extends CaseApp[Options] {
   ((15 to 15) ++ (colorBase to (colorBase - 30) by -6)).map(i => new TextColor.Indexed(i)).sliding(2).foreach { case Seq(a, b) => colorMap.put(a, b) }
   colorMap.put(TextColor.ANSI.WHITE_BRIGHT, new TextColor.Indexed(colorBase))
   def fade(color: TextColor): TextColor = {
-    if (colorMap.containsKey(color)) {
-      colorMap.get(color)
+    // Optimization: Avoid double hash lookup by using get() and checking for null
+    val nextColor = colorMap.get(color)
+    if (nextColor != null) {
+      nextColor
     } else {
       TextColor.ANSI.RED //unexpected color map entry, return red
     }
