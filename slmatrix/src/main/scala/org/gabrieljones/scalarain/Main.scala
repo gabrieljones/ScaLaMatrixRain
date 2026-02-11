@@ -203,14 +203,17 @@ object Main extends CaseApp[Options] {
       val rng = ThreadLocalRandom.current()
       var fx = 0
       var fy = 0
+      val fadeThreshold = (fadeProbability * 128) / 100
+      val glitchThreshold = (glitchProbability * 128) / 100
       while (fy < terminalSizeRows) {
         while (fx < terminalSizeColumns) {
-          // Optimization: Check probability first to avoid expensive getCharacter calls
-          if (rng.nextInt(100) < fadeProbability) {
+          // Optimization: Use bitwise mask (0..127) to approximate probability check
+          // significantly faster than nextInt(100) which involves modulo
+          if ((rng.nextInt() & 127) < fadeThreshold) {
             val charCur = rainGraphics.getCharacter(fx, fy)
             if (charCur != null && charCur != TextCharacter.DEFAULT_CHARACTER) {
               val colorCur = charCur.getForegroundColor
-              val glitchInsteadOfFade = rng.nextInt(100) < glitchProbability
+              val glitchInsteadOfFade = (rng.nextInt() & 127) < glitchThreshold
               val colorNew = if (glitchInsteadOfFade) colorCur else fade(colorCur)
               if (colorNew.getGreen > 1) {
                 val charGlitched = if (glitchInsteadOfFade) charFromSet else charCur.getCharacter
@@ -305,11 +308,8 @@ object Main extends CaseApp[Options] {
   ((15 to 15) ++ (colorBase to (colorBase - 30) by -6)).map(i => new TextColor.Indexed(i)).sliding(2).foreach { case Seq(a, b) => colorMap.put(a, b) }
   colorMap.put(TextColor.ANSI.WHITE_BRIGHT, new TextColor.Indexed(colorBase))
   def fade(color: TextColor): TextColor = {
-    if (colorMap.containsKey(color)) {
-      colorMap.get(color)
-    } else {
-      TextColor.ANSI.RED //unexpected color map entry, return red
-    }
+    val res = colorMap.get(color)
+    if (res != null) res else TextColor.ANSI.RED //unexpected color map entry, return red
   }
 
 
