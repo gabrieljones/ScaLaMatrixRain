@@ -20,7 +20,7 @@ object Main extends CaseApp[Options] {
   val glitchProbability = 25
   def run(options: Options, remaining: RemainingArgs): Unit = {
     val sets: Array[Int] = Options.parseWeightedSets(options.unicodeChars)
-    def charFromSet: Char = sets(ThreadLocalRandom.current().nextInt(sets.length)).toChar
+    def charFromSet(rng: ThreadLocalRandom): Char = sets(rng.nextInt(sets.length)).toChar
 
     //lanterna copy screen
     val defaultTerminalFactory = new DefaultTerminalFactory()
@@ -163,7 +163,8 @@ object Main extends CaseApp[Options] {
 
     val dropQuantity = (dropQuantityFactor * terminalSizeColumns).toInt
     val drops: Array[Array[Int]] = Array.fill(dropQuantity) {
-      newDrop(new Array[Int](5), acceleration.startPosition, acceleration.startVector, terminalSizeColumns, terminalsSizeRows)//.tap(_(1) = ThreadLocalRandom.current().nextInt(terminalsSizeRows))
+      val rng = ThreadLocalRandom.current()
+      newDrop(new Array[Int](5), acceleration.startPosition(rng), acceleration.startVector(rng), terminalSizeColumns, terminalsSizeRows, rng)//.tap(_(1) = ThreadLocalRandom.current().nextInt(terminalsSizeRows))
     }
     val testPatternOnFn = (t: Terminal, input: KeyStroke) => {
       if (input != null) {
@@ -216,7 +217,7 @@ object Main extends CaseApp[Options] {
               val glitchInsteadOfFade = (rng.nextInt() & 127) < glitchThreshold
               val colorNew = if (glitchInsteadOfFade) colorCur else fade(colorCur)
               if (colorNew.getGreen > 1) {
-                val charGlitched = if (glitchInsteadOfFade) charFromSet else charCur.getCharacter
+                val charGlitched = if (glitchInsteadOfFade) charFromSet(rng) else charCur.getCharacter
                 val charNew = new TextCharacter(charGlitched, colorNew, charCur.getBackgroundColor)
                 rainGraphics.setCharacter(fx, fy, charNew)
               } else {
@@ -238,7 +239,7 @@ object Main extends CaseApp[Options] {
         val vX = drop(2)
         val vY = drop(3)
         val c  = drop(4)
-        val char = charFromSet
+        val char = charFromSet(rng)
         {//advance drops
           if (vX != 0 && frameCounter % vX == 0) {
             val dir = if (vX > 0) 1 else -1
@@ -262,13 +263,13 @@ object Main extends CaseApp[Options] {
           }
         }
         {
-          val vec = acceleration.apply(vX, vY, pXC, pYC)
+          val vec = acceleration.apply(vX, vY, pXC, pYC, rng)
           drop(2) = vec.x
           drop(3) = vec.y
         }
         {//if drop is off-screen then replace with new drop
           if (acceleration.outOfBounds(drop(0), drop(1))) {
-            newDrop(drop, acceleration.newPosition, acceleration.startVector, terminalSizeColumns, terminalsSizeRows)
+            newDrop(drop, acceleration.newPosition(rng), acceleration.startVector(rng), terminalSizeColumns, terminalsSizeRows, rng)
           }
         }
         dI += 1
@@ -293,12 +294,12 @@ object Main extends CaseApp[Options] {
     }
   }
 
-  def newDrop(drop: Array[Int], pos: Vector2, vel: Vector2, terminalSizeColumns: Int, terminalSizeRows: Int): Array[Int] = {
+  def newDrop(drop: Array[Int], pos: Vector2, vel: Vector2, terminalSizeColumns: Int, terminalSizeRows: Int, rng: ThreadLocalRandom): Array[Int] = {
     drop(0) = pos.x
     drop(1) = pos.y
     drop(2) = vel.x
     drop(3) = vel.y
-    drop(4) = ThreadLocalRandom.current().nextInt(2)
+    drop(4) = rng.nextInt(2)
     drop
   }
 
