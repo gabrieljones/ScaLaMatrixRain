@@ -20,6 +20,10 @@ object Main extends CaseApp[Options] {
   val glitchProbability = 25
   def run(options: Options, remaining: RemainingArgs): Unit = {
     val sets: Array[Int] = Options.parseWeightedSets(options.unicodeChars)
+    // Optimization: Precompute faded white color and trail characters to avoid repeated allocations and lookups
+    val fadedWhite = fade(TextColor.ANSI.WHITE_BRIGHT)
+    val trailChars = sets.map(code => new TextCharacter(code.toChar, fadedWhite, TextColor.ANSI.DEFAULT))
+
     def charFromSet(rng: ThreadLocalRandom): Char = sets(rng.nextInt(sets.length)).toChar
 
     //lanterna copy screen
@@ -155,6 +159,11 @@ object Main extends CaseApp[Options] {
     val terminalSizeColumns = terminalSize.getColumns
     val terminalsSizeRows   = terminalSize.getRows
 
+    // Optimization: Cache terminal size to avoid expensive native calls every frame
+    var cachedTerminalSize: TerminalSize = terminalSize
+    var cachedTerminalSizeColumns = terminalSizeColumns
+    var cachedTerminalSizeRows = terminalsSizeRows
+
     val acceleration: Physics.Acceleration = options.physics match {
       case "rain"   => Physics.Acceleration.Rain(terminalSizeColumns, terminalsSizeRows)
       case "spiral" => Physics.Acceleration.Spiral(terminalSizeColumns, terminalsSizeRows, -1.4)
@@ -198,9 +207,16 @@ object Main extends CaseApp[Options] {
     val frameFn: Runnable = () => {
       val input = terminal.pollInput()
       terminal.checkExit(input)
-      val terminalSize = getTerminalSize
-      val terminalSizeColumns = terminalSize.getColumns
-      val terminalSizeRows = terminalSize.getRows
+
+      // Optimization: Only update terminal size every 10 frames
+      if (frameCounter % 10 == 0) {
+        cachedTerminalSize = getTerminalSize
+        cachedTerminalSizeColumns = cachedTerminalSize.getColumns
+        cachedTerminalSizeRows = cachedTerminalSize.getRows
+      }
+      val terminalSizeColumns = cachedTerminalSizeColumns
+      val terminalSizeRows = cachedTerminalSizeRows
+
       val rng = ThreadLocalRandom.current()
       var fx = 0
       var fy = 0
@@ -239,7 +255,9 @@ object Main extends CaseApp[Options] {
         val vX = drop(2)
         val vY = drop(3)
         val c  = drop(4)
-        val char = charFromSet(rng)
+        // Optimization: Generate index once to lookup both char and precomputed trail character
+        val charIndex = rng.nextInt(sets.length)
+        val char = sets(charIndex).toChar
         {//advance drops
           if (vX != 0 && frameCounter % vX == 0) {
             val dir = if (vX > 0) 1 else -1
@@ -259,7 +277,7 @@ object Main extends CaseApp[Options] {
           val pXN = drop(0)
           val pYN = drop(1)
           if (pXN != pXC || pYN != pYC) {
-            rainGraphics.setCharacter(pXC, pYC, new TextCharacter(char, fade(TextColor.ANSI.WHITE_BRIGHT), TextColor.ANSI.DEFAULT))
+            rainGraphics.setCharacter(pXC, pYC, trailChars(charIndex))
           }
         }
         {
