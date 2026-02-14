@@ -321,18 +321,32 @@ object Main extends CaseApp[Options] {
     drop
   }
 
-  val colorMap = new util.HashMap[TextColor, TextColor]()
+  // Optimization: Use array lookup instead of HashMap for performance.
+  // Assumes TextColor.Indexed.hashCode() is linear (verified by test).
+  // We use dynamic offset to avoid hardcoding library implementation details.
+  val indexedColorOffset: Int = new TextColor.Indexed(0).hashCode()
+  val fadeLookup = new Array[TextColor](256)
   val colorBase = 46
 //  val colorBase = 226
-  ((15 to 15) ++ (colorBase to (colorBase - 30) by -6)).map(i => new TextColor.Indexed(i)).sliding(2).foreach { case Seq(a, b) => colorMap.put(a, b) }
-  colorMap.put(TextColor.ANSI.WHITE_BRIGHT, new TextColor.Indexed(colorBase))
+  ((15 to 15) ++ (colorBase to (colorBase - 30) by -6)).map(i => new TextColor.Indexed(i)).sliding(2).foreach { case Seq(a, b) =>
+    val idx = a.hashCode() - indexedColorOffset
+    if (idx >= 0 && idx < 256) fadeLookup(idx) = b
+  }
+
   def fade(color: TextColor): TextColor = {
-    // Optimization: Avoid double hash lookup by using get() and checking for null
-    val nextColor = colorMap.get(color)
-    if (nextColor != null) {
-      nextColor
+    if (color == TextColor.ANSI.WHITE_BRIGHT) {
+      val res = fadeLookup(15)
+      if (res != null) res else TextColor.ANSI.RED
+    } else if (color.getClass == classOf[TextColor.Indexed]) {
+      val idx = color.hashCode() - indexedColorOffset
+      if (idx >= 0 && idx < 256) {
+        val res = fadeLookup(idx)
+        if (res != null) res else TextColor.ANSI.RED
+      } else {
+        TextColor.ANSI.RED //unexpected color map entry, return red
+      }
     } else {
-      TextColor.ANSI.RED //unexpected color map entry, return red
+      TextColor.ANSI.RED
     }
   }
 
