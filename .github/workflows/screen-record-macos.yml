@@ -23,8 +23,13 @@ jobs:
     - name: Run Terminal.app and record screen
       run: |
         SLMATRIX_BIN="$(pwd)/slmatrix/build/native/nativeCompile/slmatrix"
-        osascript -e "tell application \"Terminal\" to do script \"'$SLMATRIX_BIN' --scenes=rain\""
+        osascript -e "tell application \"Terminal\"" \
+                  -e "ignoring application responses" \
+                  -e "do script \"'$SLMATRIX_BIN' --scenes=rain\"" \
+                  -e "end ignoring" \
+                  -e "end tell"
         osascript -e 'tell application "Terminal" to activate'
+        sleep 1
         osascript -e 'tell application "Terminal" to set bounds of front window to {0, 0, 1024, 768}'
         sleep 5
         ffmpeg -y -video_size 1024x768 -framerate 12 -f avfoundation -i "1:none" -t 10 screen-macos.webm
