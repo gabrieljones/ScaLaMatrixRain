@@ -14,7 +14,11 @@ class TestFrameContext(width: Int, height: Int) extends FrameContext(null, 1) {
     this.cols = width
     this.rows = height
   }
+  // Re-initialize after super constructor, since width/height are 0 during super's update call
+  cols = width
+  rows = height
 }
+
 
 class PhysicsTest {
 
