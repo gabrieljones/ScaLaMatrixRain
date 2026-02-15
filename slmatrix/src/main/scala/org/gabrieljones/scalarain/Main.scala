@@ -164,7 +164,6 @@ object Main extends CaseApp[Options] {
     var mousePosition = TerminalPosition(0,0)
 
     given frameContext: FrameContext = new FrameContext(terminal, sets.maxDisplayWidth())
-      .tap(_.update(terminal))
 
     val acceleration: Physics.Acceleration = options.physics match {
       case "rain"   => Physics.Acceleration.Rain
