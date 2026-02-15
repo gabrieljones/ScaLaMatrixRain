@@ -15,11 +15,11 @@ object Physics {
   }
 
   sealed trait Acceleration {
-    def apply(vX: Int, vY: Int, x: Int, y: Int, rng: ThreadLocalRandom): Vector2
-    def startVector(rng: ThreadLocalRandom): Vector2
-    def startPosition(rng: ThreadLocalRandom): Vector2
-    def newPosition(rng: ThreadLocalRandom): Vector2
-    def outOfBounds(x: Int, y: Int): Boolean
+    def apply(vX: Int, vY: Int, x: Int, y: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2
+    def startVector(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2
+    def startPosition(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2
+    def newPosition(mouseX: Int, mouseY: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2
+    def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext): Boolean
   }
 
   object Acceleration {
@@ -27,25 +27,25 @@ object Physics {
     //      override def apply(vX: Int, vY: Int, x: Int, y: Int): Vector2 = Vector2(vX, vY)
     //    }
 
-    case class Gravity(w: Int, h: Int, strength: Int = 1) extends Acceleration {
-      val centerX = w / 2
-      val centerY = h / 2
-      override def apply(vX: Int, vY: Int, x: Int, y: Int, rng: ThreadLocalRandom): Vector2 = Vector2(vX, Math.max(1, vY - strength))
+    case class Gravity(strength: Int = 1) extends Acceleration {
+      override def apply(vX: Int, vY: Int, x: Int, y: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = Vector2(vX, Math.max(1, vY - strength))
 
-      override def startVector(rng: ThreadLocalRandom): Vector2 = Vector2(0, 32)
+      override def startVector(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = Vector2(0, 32)
 
-      override def startPosition(rng: ThreadLocalRandom): Vector2 = Vector2(rng.nextInt(w), rng.nextInt(h))
+      override def startPosition(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = Vector2(rng.nextInt(frameContext.w), rng.nextInt(frameContext.h))
 
-      override def newPosition(rng: ThreadLocalRandom): Vector2 = Vector2(rng.nextInt(w), 0)
+      override def newPosition(mouseX: Int, mouseY: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = Vector2(rng.nextInt(frameContext.w), 0)
 
-      override def outOfBounds(x: Int, y: Int): Boolean = {
+      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext): Boolean = {
+        val centerX = frameContext.w / 2
+        val centerY = frameContext.h / 2
         math.abs(x - centerX) < 2 && math.abs(y - centerY) < 2
       }
     }
 
-    case class Rain(w: Int, h: Int) extends Acceleration {
+    case object Rain extends Acceleration {
 
-      override def apply(vX: Int, vY: Int, x: Int, y: Int, rng: ThreadLocalRandom): Vector2 = {
+      override def apply(vX: Int, vY: Int, x: Int, y: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = {
         val deltaY = rng.nextInt(-32, 32) / 31 //accelerate = -1, 0, or 1, make changes less likely
         val vYNew = vY + deltaY
         val vYClamped = if (vYNew > 0 && vYNew < 32) { //if new velocity is in bounds update
@@ -56,19 +56,19 @@ object Physics {
         Vector2(vX, vYClamped)
       }
 
-      override def startVector(rng: ThreadLocalRandom): Vector2 = Vector2(0, Math.min(rng.nextInt(8) + 1, rng.nextInt(8) + 1)) //Vector2(0, ThreadLocalRandom.current().nextInt(32))
+      override def startVector(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = Vector2(0, Math.min(rng.nextInt(8) + 1, rng.nextInt(8) + 1)) //Vector2(0, ThreadLocalRandom.current().nextInt(32))
 
-      override def startPosition(rng: ThreadLocalRandom): Vector2 = Vector2(rng.nextInt(w), rng.nextInt(h))
+      override def startPosition(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = Vector2(rng.nextInt(frameContext.w), rng.nextInt(frameContext.h))
 
-      override def newPosition(rng: ThreadLocalRandom): Vector2 = Vector2(rng.nextInt(w), 0)
+      override def newPosition(mouseX: Int, mouseY: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = Vector2(rng.nextInt(frameContext.w), 0)
 
-      override def outOfBounds(x: Int, y: Int): Boolean = y > h
+      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext): Boolean = y > frameContext.h
     }
 
-    case class GravityCenter(w: Int, h: Int, strength: Int) extends Acceleration {
-      val centerX = w / 2
-      val centerY = h / 2
-      override def apply(vX: Int, vY: Int, x: Int, y: Int, rng: ThreadLocalRandom): Vector2 = {
+    case class GravityCenter(strength: Int) extends Acceleration {
+      override def apply(vX: Int, vY: Int, x: Int, y: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = {
+        val centerX = frameContext.w / 2
+        val centerY = frameContext.h / 2
         val velX = if (vX == 0) 0.0 else 1.0 / vX
         val velY = if (vY == 0) 0.0 else 1.0 / vY
         val dirX = centerX - x
@@ -84,38 +84,37 @@ object Physics {
         )
       }
 
-      override def startVector(rng: ThreadLocalRandom): Vector2 = Vector2(0, 0)
+      override def startVector(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = Vector2(0, 0)
 
-      override def startPosition(rng: ThreadLocalRandom): Vector2 = edgeOfScreen(w, h, rng)
+      override def startPosition(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = edgeOfScreen
 
-      override def newPosition(rng: ThreadLocalRandom): Vector2 = startPosition(rng)
+      override def newPosition(mouseX: Int, mouseY: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = startPosition
 
-      override def outOfBounds(x: Int, y: Int): Boolean = {
+      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext): Boolean = {
+        val centerX = frameContext.w / 2
+        val centerY = frameContext.h / 2
         math.abs(x - centerX) < 2 && math.abs(y - centerY) < 2
       }
     }
 
-    case class Warp(w: Int, h: Int) extends Acceleration {
-      override def apply(vX: Int, vY: Int, x: Int, y: Int, rng: ThreadLocalRandom): Vector2 = Vector2(vX, vY)
+    case object Warp extends Acceleration {
+      override def apply(vX: Int, vY: Int, x: Int, y: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = Vector2(vX, vY)
 
-      override def startVector(rng: ThreadLocalRandom): Vector2 = Vector2(rng.nextInt(-27, 27) / 2, rng.nextInt(-59, 59) / 2)
+      override def startVector(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = Vector2(rng.nextInt(-27, 27) / 2, rng.nextInt(-59, 59) / 2)
 
-      override def startPosition(rng: ThreadLocalRandom): Vector2 = Vector2(w / 2, h / 2)
+      override def startPosition(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = Vector2(frameContext.w / 2, frameContext.h / 2)
 
-      override def newPosition(rng: ThreadLocalRandom): Vector2 = startPosition(rng)
+      override def newPosition(mouseX: Int, mouseY: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = startPosition
 
-      override def outOfBounds(x: Int, y: Int): Boolean = {
-        x < 0 || y < 0 || x > w - 4 || y > h - 2
+      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext): Boolean = {
+        x < 0 || y < 0 || x > frameContext.w - 4 || y > frameContext.h - 2
       }
     }
 
-    case class Spiral(w: Int, h: Int, angle: Double = 1.4) extends Acceleration {
-      val centerX = w / 2
-      val centerY = h / 2
-
-      val maxRadius = Math.max(centerX, centerY)
-
-      override def apply(vX: Int, vY: Int, x: Int, y: Int, rng: ThreadLocalRandom): Vector2 = {
+    case class Spiral(angle: Double = 1.4) extends Acceleration {
+      override def apply(vX: Int, vY: Int, x: Int, y: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = {
+        val centerX = frameContext.w / 2
+        val centerY = frameContext.h / 2
         val dirX = centerX - x
         val dirY = centerY - y
         val dist = math.sqrt(dirX * dirX + dirY * dirY)
@@ -129,25 +128,28 @@ object Physics {
         )
       }
 
-      override def startVector(rng: ThreadLocalRandom): Vector2 = Vector2(0, 0)
+      override def startVector(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = Vector2(0, 0)
 
-      override def startPosition(rng: ThreadLocalRandom): Vector2 = Vector2(rng.nextInt(w), rng.nextInt(h))
+      override def startPosition(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = Vector2(rng.nextInt(frameContext.w), rng.nextInt(frameContext.h))
 
-      override def newPosition(rng: ThreadLocalRandom): Vector2 = edgeOfScreen(w, h, rng)
+      override def newPosition(mouseX: Int, mouseY: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = edgeOfScreen
 
-      override def outOfBounds(x: Int, y: Int): Boolean = {
+      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext): Boolean = {
+        val centerX = frameContext.w / 2
+        val centerY = frameContext.h / 2
+        val maxRadius = Math.max(centerX, centerY)
         math.abs(x - centerX) < 4         && math.abs(y - centerY) < 4 ||
         math.abs(x - centerX) > maxRadius && math.abs(y - centerY) > maxRadius
       }
     }
 
-    def edgeOfScreen(w: Int, h: Int, rng: ThreadLocalRandom): Vector2 = {
+    def edgeOfScreen(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = {
       val side = rng.nextInt(4)
       side match {
-        case 0 => Vector2(rng.nextInt(w), 0) //top
-        case 1 => Vector2(w - 4, rng.nextInt(h)) //right
-        case 2 => Vector2(rng.nextInt(w), h - 2) //bottom
-        case 3 => Vector2(0, rng.nextInt(h)) //left
+        case 0 => Vector2(rng.nextInt(frameContext.w), 0) //top
+        case 1 => Vector2(frameContext.w - 4, rng.nextInt(frameContext.h)) //right
+        case 2 => Vector2(rng.nextInt(frameContext.w), frameContext.h - 2) //bottom
+        case 3 => Vector2(0, rng.nextInt(frameContext.h)) //left
       }
     }
   }

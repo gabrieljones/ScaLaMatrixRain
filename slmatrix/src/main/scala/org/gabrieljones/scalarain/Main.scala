@@ -1,8 +1,9 @@
 package org.gabrieljones.scalarain
 
+import org.gabrieljones.scalarain.CodePointSyntax.*
 import caseapp.*
-import com.googlecode.lanterna.input.KeyStroke
-import com.googlecode.lanterna.terminal.{DefaultTerminalFactory, Terminal}
+import com.googlecode.lanterna.input.{KeyStroke, MouseAction}
+import com.googlecode.lanterna.terminal.{DefaultTerminalFactory, ExtendedTerminal, MouseCaptureMode, Terminal}
 import com.googlecode.lanterna.*
 import Options.*
 import org.gabrieljones.scalarain.Physics.Vector2
@@ -19,12 +20,10 @@ object Main extends CaseApp[Options] {
   val fadeProbability = 25
   val glitchProbability = 25
   def run(options: Options, remaining: RemainingArgs): Unit = {
-    val sets: Array[Int] = Options.parseWeightedSets(options.unicodeChars)
+    val sets: SetsOfCodePoints = Options.parseWeightedSets(options.unicodeChars)
     // Optimization: Precompute faded white color and trail characters to avoid repeated allocations and lookups
     val fadedWhite = fade(TextColor.ANSI.WHITE_BRIGHT)
-    val trailChars = sets.map(code => new TextCharacter(code.toChar, fadedWhite, TextColor.ANSI.DEFAULT))
-
-    def charFromSet(rng: ThreadLocalRandom): Char = sets(rng.nextInt(sets.length)).toChar
+    val trailChars = sets.unwrap.map(code => new TextCharacter(code.toChar, fadedWhite, TextColor.ANSI.DEFAULT))
 
     //lanterna copy screen
     val defaultTerminalFactory = new DefaultTerminalFactory()
@@ -146,6 +145,11 @@ object Main extends CaseApp[Options] {
 
     terminal.cursorHide()
 
+    terminal match {
+      case et: ExtendedTerminal =>
+        et.setMouseCaptureMode(MouseCaptureMode.CLICK_RELEASE_DRAG_MOVE)
+    }
+
     //frame interval with scheduler
     val scheduler = new java.util.concurrent.ScheduledThreadPoolExecutor(1)
     val testPatternGraphics = newTextGraphics()
@@ -155,25 +159,25 @@ object Main extends CaseApp[Options] {
     rainGraphics.setModifiers(util.EnumSet.of(SGR.BOLD))
     val lastInput = new AtomicReference[KeyStroke](KeyStroke.fromString("|"))
     var frameCounter: Int = 0
-    val terminalSize: TerminalSize = getTerminalSize
-    val terminalSizeColumns = terminalSize.getColumns
-    val terminalsSizeRows   = terminalSize.getRows
+    var mousePosition = TerminalPosition(0,0)
 
-    // Optimization: Cache terminal size to avoid expensive native calls every frame
-    var cachedTerminalSize: TerminalSize = terminalSize
-    var cachedTerminalSizeColumns = terminalSizeColumns
-    var cachedTerminalSizeRows = terminalsSizeRows
+    given frameContext: FrameContext = new FrameContext(terminal, sets.maxDisplayWidth())
+      .tap(_.update(terminal))
 
     val acceleration: Physics.Acceleration = options.physics match {
-      case "rain"   => Physics.Acceleration.Rain(terminalSizeColumns, terminalsSizeRows)
-      case "spiral" => Physics.Acceleration.Spiral(terminalSizeColumns, terminalsSizeRows, -1.4)
-      case "warp"   => Physics.Acceleration.Warp(terminalSizeColumns, terminalsSizeRows)
+      case "rain"   => Physics.Acceleration.Rain
+      case "spiral" => Physics.Acceleration.Spiral(-1.4)
+      case "warp"   => Physics.Acceleration.Warp
     }
 
-    val dropQuantity = (dropQuantityFactor * terminalSizeColumns).toInt
+    val dropQuantity = (dropQuantityFactor * frameContext.cols).toInt
     val drops: Array[Array[Int]] = Array.fill(dropQuantity) {
-      val rng = ThreadLocalRandom.current()
-      newDrop(new Array[Int](5), acceleration.startPosition(rng), acceleration.startVector(rng), terminalSizeColumns, terminalsSizeRows, rng)//.tap(_(1) = ThreadLocalRandom.current().nextInt(terminalsSizeRows))
+      given ThreadLocalRandom = ThreadLocalRandom.current()
+      newDrop(
+        new Array[Int](5),
+        acceleration.startPosition,
+        acceleration.startVector,
+      )//.tap(_(1) = ThreadLocalRandom.current().nextInt(terminalsSizeRows))
     }
     val testPatternOnFn = (t: Terminal, input: KeyStroke) => {
       if (input != null) {
@@ -187,6 +191,8 @@ object Main extends CaseApp[Options] {
       testPatternGraphics.putString(2, 4, frameCounter.toString)
       testPatternGraphics.putString(2, 5, drops(0).mkString(","))
       testPatternGraphics.putString(2, 6, lastInput.get().toString)
+      testPatternGraphics.putString(2, 7, mousePosition.toString)
+      testPatternGraphics.putString(mousePosition, "▹")
       for {
         i <- 0 until 255
         index = new TextColor.Indexed(i)
@@ -205,25 +211,34 @@ object Main extends CaseApp[Options] {
     val testPatternFn: (Terminal, KeyStroke) => Unit = if (options.testPattern) testPatternOnFn else testPatternOffFn
     //Array(positionX, positionY, velocityX, velocityY, color)
     val frameFn: Runnable = () => {
-      val input = terminal.pollInput()
+      var tiD: KeyStroke = terminal.pollInput()
+      var ti = tiD
+      var draining = true
+      while (draining) {
+        tiD match {
+          case ma: MouseAction if ma.isMouseMove || ma.isMouseDrag => //drain
+            mousePosition = ma.getPosition
+            tiD = terminal.pollInput()
+          case _ =>
+            ti = tiD
+            draining = false
+        }
+      }
+      val input = ti
       terminal.checkExit(input)
 
       // Optimization: Only update terminal size every 10 frames
       if (frameCounter % 10 == 0) {
-        cachedTerminalSize = getTerminalSize
-        cachedTerminalSizeColumns = cachedTerminalSize.getColumns
-        cachedTerminalSizeRows = cachedTerminalSize.getRows
+        frameContext.update(terminal)
       }
-      val terminalSizeColumns = cachedTerminalSizeColumns
-      val terminalSizeRows = cachedTerminalSizeRows
 
-      val rng = ThreadLocalRandom.current()
+      given rng: ThreadLocalRandom = ThreadLocalRandom.current()
       var fx = 0
       var fy = 0
       val fadeThreshold = (fadeProbability * 128) / 100
       val glitchThreshold = (glitchProbability * 128) / 100
-      while (fy < terminalSizeRows) {
-        while (fx < terminalSizeColumns) {
+      while (fy < frameContext.rows) {
+        while (fx < frameContext.cols) {
           // Optimization: Use bitwise mask (0..127) to approximate probability check
           // significantly faster than nextInt(100) which involves modulo
           if ((rng.nextInt() & 127) < fadeThreshold) {
@@ -233,7 +248,7 @@ object Main extends CaseApp[Options] {
               val glitchInsteadOfFade = (rng.nextInt() & 127) < glitchThreshold
               val colorNew = if (glitchInsteadOfFade) colorCur else fade(colorCur)
               if (colorNew.getGreen > 1) {
-                val charGlitched = if (glitchInsteadOfFade) charFromSet(rng) else charCur.getCharacter
+                val charGlitched = if (glitchInsteadOfFade) sets.randomChar else charCur.getCharacter
                 val charNew = new TextCharacter(charGlitched, colorNew, charCur.getBackgroundColor)
                 rainGraphics.setCharacter(fx, fy, charNew)
               } else {
@@ -257,7 +272,7 @@ object Main extends CaseApp[Options] {
         val c  = drop(4)
         // Optimization: Generate index once to lookup both char and precomputed trail character
         val charIndex = rng.nextInt(sets.length)
-        val char = sets(charIndex).toChar
+        val char = sets.getAsInt(charIndex).toChar
         {//advance drops
           if (vX != 0 && frameCounter % vX == 0) {
             val dir = if (vX > 0) 1 else -1
@@ -281,13 +296,13 @@ object Main extends CaseApp[Options] {
           }
         }
         {
-          val vec = acceleration.apply(vX, vY, pXC, pYC, rng)
+          val vec = acceleration.apply(vX, vY, pXC, pYC)
           drop(2) = vec.x
           drop(3) = vec.y
         }
         {//if drop is off-screen then replace with new drop
           if (acceleration.outOfBounds(drop(0), drop(1))) {
-            newDrop(drop, acceleration.newPosition(rng), acceleration.startVector(rng), terminalSizeColumns, terminalsSizeRows, rng)
+            newDrop(drop, acceleration.newPosition(mousePosition.getColumn, mousePosition.getRow), acceleration.startVector)
           }
         }
         dI += 1
@@ -312,7 +327,7 @@ object Main extends CaseApp[Options] {
     }
   }
 
-  def newDrop(drop: Array[Int], pos: Vector2, vel: Vector2, terminalSizeColumns: Int, terminalSizeRows: Int, rng: ThreadLocalRandom): Array[Int] = {
+  def newDrop(drop: Array[Int], pos: Vector2, vel: Vector2)(using frameContext: FrameContext, rng: ThreadLocalRandom): Array[Int] = {
     drop(0) = pos.x
     drop(1) = pos.y
     drop(2) = vel.x
