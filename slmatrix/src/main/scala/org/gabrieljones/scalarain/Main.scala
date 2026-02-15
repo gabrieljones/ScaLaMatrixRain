@@ -146,7 +146,6 @@ object Main extends CaseApp[Options] {
     terminal.cursorHide()
 
     terminal match {
-    terminal match {
       case et: ExtendedTerminal =>
         et.setMouseCaptureMode(MouseCaptureMode.CLICK_RELEASE_DRAG_MOVE)
       case _ => // terminal does not support mouse capture
@@ -164,6 +163,22 @@ object Main extends CaseApp[Options] {
     var mousePosition = TerminalPosition(0,0)
 
     given frameContext: FrameContext = new FrameContext(terminal, sets.maxDisplayWidth())
+    var screenBuffer = Array.fill(frameContext.cols, frameContext.rows)(TextCharacter.DEFAULT_CHARACTER)
+
+    def updateChar(x: Int, y: Int, c: TextCharacter): Unit = {
+      if (x >= 0 && x < frameContext.cols && y >= 0 && y < frameContext.rows) {
+        rainGraphics.setCharacter(x, y, c)
+        screenBuffer(x)(y) = c
+      }
+    }
+
+    def getChar(x: Int, y: Int): TextCharacter = {
+      if (x >= 0 && x < frameContext.cols && y >= 0 && y < frameContext.rows) {
+        screenBuffer(x)(y)
+      } else {
+        TextCharacter.DEFAULT_CHARACTER
+      }
+    }
 
     val acceleration: Physics.Acceleration = options.physics match {
       case "rain"   => Physics.Acceleration.Rain
@@ -230,7 +245,12 @@ object Main extends CaseApp[Options] {
 
       // Optimization: Only update terminal size every 10 frames
       if (frameCounter % 10 == 0) {
+        val oldCols = frameContext.cols
+        val oldRows = frameContext.rows
         frameContext.update(terminal)
+        if (frameContext.cols != oldCols || frameContext.rows != oldRows) {
+          screenBuffer = Array.fill(frameContext.cols, frameContext.rows)(TextCharacter.DEFAULT_CHARACTER)
+        }
       }
 
       given rng: ThreadLocalRandom = ThreadLocalRandom.current()
@@ -243,17 +263,17 @@ object Main extends CaseApp[Options] {
           // Optimization: Use bitwise mask (0..127) to approximate probability check
           // significantly faster than nextInt(100) which involves modulo
           if ((rng.nextInt() & 127) < fadeThreshold) {
-            val charCur = rainGraphics.getCharacter(fx, fy)
-            if (charCur != null && charCur != TextCharacter.DEFAULT_CHARACTER) {
+            val charCur = getChar(fx, fy)
+            if (charCur != TextCharacter.DEFAULT_CHARACTER) {
               val colorCur = charCur.getForegroundColor
               val glitchInsteadOfFade = (rng.nextInt() & 127) < glitchThreshold
               val colorNew = if (glitchInsteadOfFade) colorCur else fade(colorCur)
               if (colorNew.getGreen > 1) {
                 val charGlitched = if (glitchInsteadOfFade) sets.randomChar else charCur.getCharacter
                 val charNew = new TextCharacter(charGlitched, colorNew, charCur.getBackgroundColor)
-                rainGraphics.setCharacter(fx, fy, charNew)
+                updateChar(fx, fy, charNew)
               } else {
-                rainGraphics.setCharacter(fx, fy, TextCharacter.DEFAULT_CHARACTER)
+                updateChar(fx, fy, TextCharacter.DEFAULT_CHARACTER)
               }
             }
           }
@@ -287,13 +307,13 @@ object Main extends CaseApp[Options] {
         {//paint drop new at next position
           val pXN = drop(0)
           val pYN = drop(1)
-          rainGraphics.setCharacter(pXN, pYN, char)
+          updateChar(pXN, pYN, new TextCharacter(char, TextColor.ANSI.WHITE_BRIGHT, TextColor.ANSI.DEFAULT, SGR.BOLD))
         }
         {//paint drop faded first step at current position
           val pXN = drop(0)
           val pYN = drop(1)
           if (pXN != pXC || pYN != pYC) {
-            rainGraphics.setCharacter(pXC, pYC, trailChars(charIndex))
+            updateChar(pXC, pYC, trailChars(charIndex))
           }
         }
         {
