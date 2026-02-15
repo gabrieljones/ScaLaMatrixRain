@@ -1,5 +1,6 @@
 package org.gabrieljones.scalarain
 
+import org.gabrieljones.scalarain.CodePointSyntax.*
 import caseapp.*
 import caseapp.core.argparser.{ArgParser, SimpleArgParser}
 
@@ -44,7 +45,7 @@ object Options {
     "ascii_punctuation" -> (0x21 to 0x2F)
   )
 
-  def parseWeightedSets(input: String): Array[Int] = {
+  def parseWeightedSets(input: String): SetsOfCodePoints = {
     input.split(",").flatMap { part =>
       scala.util.Try {
         val (identifier, weight) = part.split(":") match {
@@ -71,7 +72,8 @@ object Options {
 
         Iterator.fill(weight)(codes).flatten
       }.getOrElse(Nil)
-    }.toArray
+    }
+      .asSetsOfCodePoints
   }
 
   def parseChar(s: String): Int = {
