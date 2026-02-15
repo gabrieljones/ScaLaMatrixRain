@@ -7,27 +7,40 @@ import org.gabrieljones.scalarain.Physics.Vector2.*
 import org.gabrieljones.scalarain.Physics.Acceleration.Gravity
 import org.gabrieljones.scalarain.Physics.Acceleration.Rain
 import java.util.concurrent.ThreadLocalRandom
+import com.googlecode.lanterna.terminal.Terminal
+
+class TestFrameContext(width: Int, height: Int) extends FrameContext(null, 1) {
+  override def update(terminal: Terminal): Unit = {
+    this.cols = width
+    this.rows = height
+  }
+  // Re-initialize after super constructor, since width/height are 0 during super's update call
+  cols = width
+  rows = height
+}
+
 
 class PhysicsTest {
 
   @Test
   def benchmarkRainApply(): Unit = {
-    val rain = Rain(100, 100)
+    given frameContext: FrameContext = new TestFrameContext(100, 100)
+    given rng: ThreadLocalRandom = ThreadLocalRandom.current()
+    val rain = Rain
     val vX = 0
     val vY = 10
     val x = 50
     val y = 50
-    val rng = ThreadLocalRandom.current()
 
     // Warmup
     for (_ <- 0 until 100000) {
-      rain.apply(vX, vY, x, y, rng)
+      rain.apply(vX, vY, x, y)
     }
 
     val start = System.nanoTime()
     var i = 0
     while (i < 10000000) {
-      rain.apply(vX, vY, x, y, rng)
+      rain.apply(vX, vY, x, y)
       i += 1
     }
     val end = System.nanoTime()
@@ -36,27 +49,29 @@ class PhysicsTest {
 
   @Test
   def testGravityApply(): Unit = {
-    val gravity = Gravity(100, 100, strength = 2)
-    val rng = ThreadLocalRandom.current()
+    given frameContext: FrameContext = new TestFrameContext(100, 100)
+    given rng: ThreadLocalRandom = ThreadLocalRandom.current()
+    val gravity = Gravity(strength = 2)
 
-    val v1 = gravity.apply(5, 10, 50, 50, rng)
+    val v1 = gravity.apply(5, 10, 50, 50)
     assertEquals(5, v1.x)
     assertEquals(8, v1.y)
 
-    val v2 = gravity.apply(5, 2, 50, 50, rng)
+    val v2 = gravity.apply(5, 2, 50, 50)
     assertEquals(5, v2.x)
     assertEquals(1, v2.y)
 
-    val v3 = gravity.apply(5, 1, 50, 50, rng)
+    val v3 = gravity.apply(5, 1, 50, 50)
     assertEquals(5, v3.x)
     assertEquals(1, v3.y)
   }
 
   @Test
   def testGravityStartVector(): Unit = {
-    val gravity = Gravity(100, 100)
-    val rng = ThreadLocalRandom.current()
-    val v = gravity.startVector(rng)
+    given frameContext: FrameContext = new TestFrameContext(100, 100)
+    given rng: ThreadLocalRandom = ThreadLocalRandom.current()
+    val gravity = Gravity()
+    val v = gravity.startVector
     assertEquals(0, v.x)
     assertEquals(32, v.y)
   }
@@ -65,10 +80,11 @@ class PhysicsTest {
   def testGravityStartPosition(): Unit = {
     val w = 100
     val h = 100
-    val gravity = Gravity(w, h)
-    val rng = ThreadLocalRandom.current()
+    given frameContext: FrameContext = new TestFrameContext(w, h)
+    given rng: ThreadLocalRandom = ThreadLocalRandom.current()
+    val gravity = Gravity()
     for (_ <- 0 until 100) {
-      val p = gravity.startPosition(rng)
+      val p = gravity.startPosition
       assertTrue(p.x >= 0 && p.x < w)
       assertTrue(p.y >= 0 && p.y < h)
     }
@@ -78,10 +94,11 @@ class PhysicsTest {
   def testGravityNewPosition(): Unit = {
     val w = 100
     val h = 100
-    val gravity = Gravity(w, h)
-    val rng = ThreadLocalRandom.current()
+    given frameContext: FrameContext = new TestFrameContext(w, h)
+    given rng: ThreadLocalRandom = ThreadLocalRandom.current()
+    val gravity = Gravity()
     for (_ <- 0 until 100) {
-      val p = gravity.newPosition(rng)
+      val p = gravity.newPosition(0, 0)
       assertTrue(p.x >= 0 && p.x < w)
       assertEquals(0, p.y)
     }
@@ -89,7 +106,8 @@ class PhysicsTest {
 
   @Test
   def testGravityOutOfBounds(): Unit = {
-    val gravity = Gravity(100, 100)
+    given frameContext: FrameContext = new TestFrameContext(100, 100)
+    val gravity = Gravity()
     // centerX = 50, centerY = 50
 
     assertTrue(gravity.outOfBounds(50, 50))

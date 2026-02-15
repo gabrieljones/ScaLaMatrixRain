@@ -2,6 +2,7 @@ package org.gabrieljones.scalarain
 
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.gabrieljones.scalarain.CodePointSyntax.*
 
 class OptionsTest {
 
