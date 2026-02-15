@@ -148,6 +148,7 @@ object Main extends CaseApp[Options] {
     terminal match {
       case et: ExtendedTerminal =>
         et.setMouseCaptureMode(MouseCaptureMode.CLICK_RELEASE_DRAG_MOVE)
+      case _ => // terminal does not support mouse capture
     }
 
     //frame interval with scheduler
