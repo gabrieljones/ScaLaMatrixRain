@@ -146,6 +146,7 @@ object Main extends CaseApp[Options] {
     terminal.cursorHide()
 
     terminal match {
+    terminal match {
       case et: ExtendedTerminal =>
         et.setMouseCaptureMode(MouseCaptureMode.CLICK_RELEASE_DRAG_MOVE)
       case _ => // terminal does not support mouse capture
