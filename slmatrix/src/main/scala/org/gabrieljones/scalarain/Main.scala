@@ -163,18 +163,19 @@ object Main extends CaseApp[Options] {
     var mousePosition = TerminalPosition(0,0)
 
     given frameContext: FrameContext = new FrameContext(terminal, sets.maxDisplayWidth())
-    var screenBuffer = Array.fill(frameContext.cols, frameContext.rows)(TextCharacter.DEFAULT_CHARACTER)
+    // Optimization: Use row-major layout (rows, cols) for better cache locality in the main nested loop
+    var screenBuffer = Array.fill(frameContext.rows, frameContext.cols)(TextCharacter.DEFAULT_CHARACTER)
 
     def updateChar(x: Int, y: Int, c: TextCharacter): Unit = {
       if (x >= 0 && x < frameContext.cols && y >= 0 && y < frameContext.rows) {
         rainGraphics.setCharacter(x, y, c)
-        screenBuffer(x)(y) = c
+        screenBuffer(y)(x) = c
       }
     }
 
     def getChar(x: Int, y: Int): TextCharacter = {
       if (x >= 0 && x < frameContext.cols && y >= 0 && y < frameContext.rows) {
-        screenBuffer(x)(y)
+        screenBuffer(y)(x)
       } else {
         TextCharacter.DEFAULT_CHARACTER
       }
@@ -249,7 +250,7 @@ object Main extends CaseApp[Options] {
         val oldRows = frameContext.rows
         frameContext.update(terminal)
         if (frameContext.cols != oldCols || frameContext.rows != oldRows) {
-          screenBuffer = Array.fill(frameContext.cols, frameContext.rows)(TextCharacter.DEFAULT_CHARACTER)
+          screenBuffer = Array.fill(frameContext.rows, frameContext.cols)(TextCharacter.DEFAULT_CHARACTER)
         }
       }
 
