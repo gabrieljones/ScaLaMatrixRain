@@ -260,11 +260,14 @@ object Main extends CaseApp[Options] {
       val fadeThreshold = (fadeProbability * 128) / 100
       val glitchThreshold = (glitchProbability * 128) / 100
       while (fy < frameContext.rows) {
+        // Optimization: Hoist row lookup to avoid repeated array access and bounds checks in inner loop
+        val row = screenBuffer(fy)
         while (fx < frameContext.cols) {
           // Optimization: Use bitwise mask (0..127) to approximate probability check
           // significantly faster than nextInt(100) which involves modulo
           if ((rng.nextInt() & 127) < fadeThreshold) {
-            val charCur = getChar(fx, fy)
+            // Optimization: Direct array access avoids method call overhead and redundant bounds checks
+            val charCur = row(fx)
             if (charCur != TextCharacter.DEFAULT_CHARACTER) {
               val colorCur = charCur.getForegroundColor
               val glitchInsteadOfFade = (rng.nextInt() & 127) < glitchThreshold
@@ -272,9 +275,13 @@ object Main extends CaseApp[Options] {
               if (colorNew.getGreen > 1) {
                 val charGlitched = if (glitchInsteadOfFade) sets.randomChar else charCur.getCharacter
                 val charNew = new TextCharacter(charGlitched, colorNew, charCur.getBackgroundColor)
-                updateChar(fx, fy, charNew)
+                // Optimization: Inline updateChar logic
+                rainGraphics.setCharacter(fx, fy, charNew)
+                row(fx) = charNew
               } else {
-                updateChar(fx, fy, TextCharacter.DEFAULT_CHARACTER)
+                // Optimization: Inline updateChar logic
+                rainGraphics.setCharacter(fx, fy, TextCharacter.DEFAULT_CHARACTER)
+                row(fx) = TextCharacter.DEFAULT_CHARACTER
               }
             }
           }
