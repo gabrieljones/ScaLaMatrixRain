@@ -36,8 +36,8 @@ object CodePointSyntax {
     def randomChar(using rng: ThreadLocalRandom): Char = sets.get(rng.nextInt(sets.length)).toChar
     def length = sets.length
     def unwrap: Array[Int] = sets
-    def contains(elem: Int): Boolean = sets.contains(elem)
-    def count(p: Int => Boolean): Int = sets.count(p)
+    def contains(elem: Int): Boolean = scala.Predef.intArrayOps(sets).contains(elem)
+    def count(p: Int => Boolean): Int = scala.Predef.intArrayOps(sets).count(p)
   }
 
   extension (sets: Array[Int]) {
