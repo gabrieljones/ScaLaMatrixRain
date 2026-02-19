@@ -22,7 +22,7 @@ object Main extends CaseApp[Options] {
   def run(options: Options, remaining: RemainingArgs): Unit = {
     val sets: SetsOfCodePoints = Options.parseWeightedSets(options.unicodeChars)
     // Optimization: Precompute faded white color and trail characters to avoid repeated allocations and lookups
-    val fadedWhite = fade(TextColor.ANSI.WHITE_BRIGHT)
+    val fadedWhite = stateToColor(1)
     val trailChars = sets.unwrap.map(code => new TextCharacter(code.toChar, fadedWhite, TextColor.ANSI.DEFAULT))
 
     //lanterna copy screen
@@ -163,21 +163,23 @@ object Main extends CaseApp[Options] {
     var mousePosition = TerminalPosition(0,0)
 
     given frameContext: FrameContext = new FrameContext(terminal, sets.maxDisplayWidth())
-    // Optimization: Use row-major layout (rows, cols) for better cache locality in the main nested loop
-    var screenBuffer = Array.fill(frameContext.rows, frameContext.cols)(TextCharacter.DEFAULT_CHARACTER)
+    // Optimization: Use primitive arrays for color state (int) and character (char)
+    // -1 represents empty/default state
+    var colorBuffer = Array.fill(frameContext.rows, frameContext.cols)(-1)
+    var charBuffer = Array.ofDim[Char](frameContext.rows, frameContext.cols)
 
     def updateChar(x: Int, y: Int, c: TextCharacter): Unit = {
       if (x >= 0 && x < frameContext.cols && y >= 0 && y < frameContext.rows) {
         rainGraphics.setCharacter(x, y, c)
-        screenBuffer(y)(x) = c
-      }
-    }
 
-    def getChar(x: Int, y: Int): TextCharacter = {
-      if (x >= 0 && x < frameContext.cols && y >= 0 && y < frameContext.rows) {
-        screenBuffer(y)(x)
-      } else {
-        TextCharacter.DEFAULT_CHARACTER
+        val fg = c.getForegroundColor
+        val res = colorToState.get(fg)
+        val state = if (res != null) res.intValue() else -1
+
+        colorBuffer(y)(x) = state
+        if (state >= 0) {
+           charBuffer(y)(x) = c.getCharacter
+        }
       }
     }
 
@@ -250,7 +252,8 @@ object Main extends CaseApp[Options] {
         val oldRows = frameContext.rows
         frameContext.update(terminal)
         if (frameContext.cols != oldCols || frameContext.rows != oldRows) {
-          screenBuffer = Array.fill(frameContext.rows, frameContext.cols)(TextCharacter.DEFAULT_CHARACTER)
+          colorBuffer = Array.fill(frameContext.rows, frameContext.cols)(-1)
+          charBuffer = Array.ofDim[Char](frameContext.rows, frameContext.cols)
         }
       }
 
@@ -260,28 +263,30 @@ object Main extends CaseApp[Options] {
       val fadeThreshold = (fadeProbability * 128) / 100
       val glitchThreshold = (glitchProbability * 128) / 100
       while (fy < frameContext.rows) {
-        // Optimization: Hoist row lookup to avoid repeated array access and bounds checks in inner loop
-        val row = screenBuffer(fy)
+        val colorRow = colorBuffer(fy)
+        val charRow = charBuffer(fy)
         while (fx < frameContext.cols) {
           // Optimization: Use bitwise mask (0..127) to approximate probability check
-          // significantly faster than nextInt(100) which involves modulo
           if ((rng.nextInt() & 127) < fadeThreshold) {
-            // Optimization: Direct array access avoids method call overhead and redundant bounds checks
-            val charCur = row(fx)
-            if (charCur != TextCharacter.DEFAULT_CHARACTER) {
-              val colorCur = charCur.getForegroundColor
-              val glitchInsteadOfFade = (rng.nextInt() & 127) < glitchThreshold
-              val colorNew = if (glitchInsteadOfFade) colorCur else fade(colorCur)
-              if (colorNew.getGreen > 1) {
-                val charGlitched = if (glitchInsteadOfFade) sets.randomChar else charCur.getCharacter
-                val charNew = new TextCharacter(charGlitched, colorNew, charCur.getBackgroundColor)
-                // Optimization: Inline updateChar logic
+            val state = colorRow(fx)
+            if (state >= 0) {
+              val glitch = (rng.nextInt() & 127) < glitchThreshold
+              val nextState = if (glitch) state else fadeTable(state)
+
+              if (nextState >= 0) {
+                val colorObj = stateToColor(nextState)
+                val charCode = charRow(fx)
+                val charGlitched = if (glitch) sets.randomChar.toChar else charCode
+
+                // Assuming default background as per original logic which preserved it but drops only use default
+                val charNew = new TextCharacter(charGlitched, colorObj, TextColor.ANSI.DEFAULT)
                 rainGraphics.setCharacter(fx, fy, charNew)
-                row(fx) = charNew
+
+                colorRow(fx) = nextState
+                if (glitch) charRow(fx) = charGlitched
               } else {
-                // Optimization: Inline updateChar logic
                 rainGraphics.setCharacter(fx, fy, TextCharacter.DEFAULT_CHARACTER)
-                row(fx) = TextCharacter.DEFAULT_CHARACTER
+                colorRow(fx) = -1
               }
             }
           }
@@ -365,34 +370,39 @@ object Main extends CaseApp[Options] {
     drop
   }
 
-  // Optimization: Use array lookup instead of HashMap for performance.
-  // Assumes TextColor.Indexed.hashCode() is linear (verified by test).
-  // We use dynamic offset to avoid hardcoding library implementation details.
-  val indexedColorOffset: Int = new TextColor.Indexed(0).hashCode()
-  val fadeLookup = new Array[TextColor](256)
+  // Optimization: Pre-computed state transition tables for fast lookups.
+  // Represents color lifecycle: White -> Faded... -> Empty (-1).
   val colorBase = 46
-//  val colorBase = 226
-  ((15 to 15) ++ (colorBase to (colorBase - 30) by -6)).map(i => new TextColor.Indexed(i)).sliding(2).foreach { case Seq(a, b) =>
-    val idx = a.hashCode() - indexedColorOffset
-    if (idx >= 0 && idx < 256) fadeLookup(idx) = b
-  }
+  val fadeStates: IndexedSeq[TextColor] = (colorBase to (colorBase - 30) by -6).map(i => new TextColor.Indexed(i))
+  val maxState: Int = fadeStates.length
 
-  def fade(color: TextColor): TextColor = {
-    if (color == TextColor.ANSI.WHITE_BRIGHT) {
-      val res = fadeLookup(15)
-      if (res != null) res else TextColor.ANSI.RED
-    } else if (color.getClass == classOf[TextColor.Indexed]) {
-      val idx = color.hashCode() - indexedColorOffset
-      if (idx >= 0 && idx < 256) {
-        val res = fadeLookup(idx)
-        if (res != null) res else TextColor.ANSI.RED
-      } else {
-        TextColor.ANSI.RED //unexpected color map entry, return red
-      }
+  val fadeTable: Array[Int] = new Array[Int](maxState + 1)
+  val stateToColor: Array[TextColor] = new Array[TextColor](maxState + 1)
+  val colorToState: java.util.IdentityHashMap[TextColor, java.lang.Integer] = new java.util.IdentityHashMap[TextColor, java.lang.Integer]()
+
+  // Initialize state tables
+  // State 0 is White Bright (Head)
+  stateToColor(0) = TextColor.ANSI.WHITE_BRIGHT
+  colorToState.put(TextColor.ANSI.WHITE_BRIGHT, 0)
+  fadeTable(0) = 1 // Transitions to State 1
+
+  // States 1..N are the fade sequence
+  fadeStates.zipWithIndex.foreach { case (color, idx) =>
+    val state = idx + 1
+    stateToColor(state) = color
+    colorToState.put(color, state)
+
+    // Calculate transition to next state
+    if (state < maxState) {
+      fadeTable(state) = state + 1
     } else {
-      TextColor.ANSI.RED
+      fadeTable(state) = -1 // End of lifecycle (Empty)
     }
   }
+
+  // Map clear/default colors to -1 (Empty)
+  colorToState.put(TextColor.ANSI.DEFAULT, -1)
+  colorToState.put(TextColor.ANSI.RED, -1)
 
 
   private var _cursorBlinkOn  = false

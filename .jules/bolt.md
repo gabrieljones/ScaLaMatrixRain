@@ -5,3 +5,7 @@
 ## 2026-10-24 - Hoist JVM 2D Array Lookups
 **Learning:** Even with Row-Major layout, `arr(y)(x)` in a nested loop performs `arr(y)` lookup (loading the inner array reference) for every pixel.
 **Action:** Hoist the inner array reference `val row = arr(y)` to the outer loop to reduce array pointer chasing and bounds checks by a factor of `width`.
+
+## 2026-10-27 - IdentityHashMap vs Arrays
+**Learning:** `IdentityHashMap` is not always faster than "simple logic + array lookup". In tight loops with heavy JIT optimization, the overhead of identity hashing and map probing (even in O(1)) can exceed the cost of a few conditional checks and direct array access.
+**Action:** For extremely hot paths (nanosecond scale), prefer primitive arrays and simple indexing logic over any Map implementation, even if it requires maintaining parallel state.

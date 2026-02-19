@@ -7,36 +7,29 @@ import com.googlecode.lanterna.TextColor
 class MainTest {
 
   @Test
-  def testFade(): Unit = {
-    // Verify fade logic for known colors
-    val white = TextColor.ANSI.WHITE_BRIGHT
-    val fadedWhite = Main.fade(white)
+  def testStateTables(): Unit = {
+    // Verify state 0 is White
+    assertEquals(TextColor.ANSI.WHITE_BRIGHT, Main.stateToColor(0))
+    assertEquals(0, Main.colorToState.get(TextColor.ANSI.WHITE_BRIGHT).intValue())
+
+    // Verify transition 0 -> 1
+    assertEquals(1, Main.fadeTable(0))
+
+    // Verify state 1 is mapped correctly
+    val fadedWhite = Main.stateToColor(1)
     assertNotNull(fadedWhite)
-    assertNotEquals(TextColor.ANSI.RED, fadedWhite, "White should fade to something other than RED")
+    assertEquals(1, Main.colorToState.get(fadedWhite).intValue())
 
-    // Verify fade logic for unknown colors
-    val unknown = TextColor.ANSI.CYAN
-    val fadedUnknown = Main.fade(unknown)
-    assertEquals(TextColor.ANSI.RED, fadedUnknown, "Unknown color should return RED")
-  }
+    // Verify last state transition to -1
+    val lastState = Main.maxState
+    assertEquals(-1, Main.fadeTable(lastState))
 
-  @Test
-  def benchmarkFade(): Unit = {
-    // Warm up
-    val white = TextColor.ANSI.WHITE_BRIGHT
-    for (_ <- 0 until 10000) {
-      Main.fade(white)
-    }
+    // Verify unknown colors map to -1 (via getOrDefault or logic)
+    // Main.colorToState contains DEFAULT and RED mapping to -1
+    assertEquals(-1, Main.colorToState.get(TextColor.ANSI.DEFAULT).intValue())
+    assertEquals(-1, Main.colorToState.get(TextColor.ANSI.RED).intValue())
 
-    val iterations = 10_000_000
-    val start = System.nanoTime()
-    var i = 0
-    while (i < iterations) {
-      Main.fade(white)
-      i += 1
-    }
-    val end = System.nanoTime()
-    val durationMs = (end - start) / 1_000_000.0
-    println(s"Fade benchmark: $durationMs ms for $iterations iterations")
+    // Verify truly unknown color returns null (map behavior)
+    assertNull(Main.colorToState.get(TextColor.ANSI.CYAN))
   }
 }
