@@ -168,13 +168,9 @@ object Main extends CaseApp[Options] {
     var colorBuffer = Array.fill(frameContext.rows, frameContext.cols)(-1)
     var charBuffer = Array.ofDim[Char](frameContext.rows, frameContext.cols)
 
-    def updateChar(x: Int, y: Int, c: TextCharacter): Unit = {
+    def updateChar(x: Int, y: Int, c: TextCharacter, state: Int): Unit = {
       if (x >= 0 && x < frameContext.cols && y >= 0 && y < frameContext.rows) {
         rainGraphics.setCharacter(x, y, c)
-
-        val fg = c.getForegroundColor
-        val res = colorToState.get(fg)
-        val state = if (res != null) res.intValue() else -1
 
         colorBuffer(y)(x) = state
         if (state >= 0) {
@@ -320,13 +316,13 @@ object Main extends CaseApp[Options] {
         {//paint drop new at next position
           val pXN = drop(0)
           val pYN = drop(1)
-          updateChar(pXN, pYN, new TextCharacter(char, TextColor.ANSI.WHITE_BRIGHT, TextColor.ANSI.DEFAULT, SGR.BOLD))
+          updateChar(pXN, pYN, new TextCharacter(char, TextColor.ANSI.WHITE_BRIGHT, TextColor.ANSI.DEFAULT, SGR.BOLD), 0)
         }
         {//paint drop faded first step at current position
           val pXN = drop(0)
           val pYN = drop(1)
           if (pXN != pXC || pYN != pYC) {
-            updateChar(pXC, pYC, trailChars(charIndex))
+            updateChar(pXC, pYC, trailChars(charIndex), 1)
           }
         }
         {
