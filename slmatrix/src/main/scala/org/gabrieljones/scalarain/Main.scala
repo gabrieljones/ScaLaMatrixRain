@@ -16,14 +16,10 @@ import scala.util.chaining.scalaUtilChainingOps
 
 object Main extends CaseApp[Options] {
   val dropQuantityFactor: Double = 1
-  val frameInterval = 50
   val fadeProbability = 25
   val glitchProbability = 25
   def run(options: Options, remaining: RemainingArgs): Unit = {
     val sets: SetsOfCodePoints = Options.parseWeightedSets(options.unicodeChars)
-    // Optimization: Precompute faded white color and trail characters to avoid repeated allocations and lookups
-    val fadedWhite = stateToColor(1)
-    val trailChars = sets.unwrap.map(code => new TextCharacter(code.toChar, fadedWhite, TextColor.ANSI.DEFAULT))
 
     //lanterna copy screen
     val defaultTerminalFactory = new DefaultTerminalFactory()
@@ -134,12 +130,32 @@ object Main extends CaseApp[Options] {
     }
 
     if (options.scenes.contains("rain")) {
-      //continue
-    } else {
-      return
+      runLoop(options, terminal, sets)
     }
+  }
 
-    //run rain scene until 'q' or 'c' is pressed
+  def runLoop(options: Options, terminal: Terminal, sets: SetsOfCodePoints): Unit = {
+    import terminal._
+
+    // Optimization: Precompute faded white color and TextCharacters to avoid repeated allocations and lookups
+    // Cache dimensions: [State][CharIndex]
+    val charCache = Array.ofDim[TextCharacter](maxState + 1, sets.length)
+
+    // Initialize cache
+    for (state <- 0 to maxState) {
+       val color = stateToColor(state)
+       // State 0 (head) uses BOLD, others use default modifiers
+       val isHead = state == 0
+
+       for (i <- 0 until sets.length) {
+          val char = sets.getAsInt(i).toChar
+          if (isHead) {
+             charCache(state)(i) = new TextCharacter(char, color, TextColor.ANSI.DEFAULT, SGR.BOLD)
+          } else {
+             charCache(state)(i) = new TextCharacter(char, color, TextColor.ANSI.DEFAULT)
+          }
+       }
+    }
 
     setForegroundColor(TextColor.ANSI.WHITE_BRIGHT)
 
@@ -163,18 +179,20 @@ object Main extends CaseApp[Options] {
     var mousePosition = TerminalPosition(0,0)
 
     given frameContext: FrameContext = new FrameContext(terminal, sets.maxDisplayWidth())
-    // Optimization: Use primitive arrays for color state (int) and character (char)
+    // Optimization: Use primitive arrays for color state (int) and character INDEX (int)
     // -1 represents empty/default state
     var colorBuffer = Array.fill(frameContext.rows, frameContext.cols)(-1)
-    var charBuffer = Array.ofDim[Char](frameContext.rows, frameContext.cols)
+    // Use Int to store index into 'sets', instead of Char
+    var charIndexBuffer = Array.ofDim[Int](frameContext.rows, frameContext.cols)
 
-    def updateChar(x: Int, y: Int, c: TextCharacter, state: Int): Unit = {
+    def updateChar(x: Int, y: Int, charIndex: Int, state: Int): Unit = {
       if (x >= 0 && x < frameContext.cols && y >= 0 && y < frameContext.rows) {
+        val c = charCache(state)(charIndex)
         rainGraphics.setCharacter(x, y, c)
 
         colorBuffer(y)(x) = state
         if (state >= 0) {
-           charBuffer(y)(x) = c.getCharacter
+           charIndexBuffer(y)(x) = charIndex
         }
       }
     }
@@ -224,8 +242,13 @@ object Main extends CaseApp[Options] {
     }
     val testPatternOffFn = (t: Terminal, input: KeyStroke) => {}
     val testPatternFn: (Terminal, KeyStroke) => Unit = if (options.testPattern) testPatternOnFn else testPatternOffFn
-    //Array(positionX, positionY, velocityX, velocityY, color)
+
     val frameFn: Runnable = () => {
+      // Check max frames for benchmark
+      if (options.maxFrames > 0 && frameCounter >= options.maxFrames) {
+        throw new RuntimeException("Max frames reached")
+      }
+
       var tiD: KeyStroke = terminal.pollInput()
       var ti = tiD
       var draining = true
@@ -249,7 +272,7 @@ object Main extends CaseApp[Options] {
         frameContext.update(terminal)
         if (frameContext.cols != oldCols || frameContext.rows != oldRows) {
           colorBuffer = Array.fill(frameContext.rows, frameContext.cols)(-1)
-          charBuffer = Array.ofDim[Char](frameContext.rows, frameContext.cols)
+          charIndexBuffer = Array.ofDim[Int](frameContext.rows, frameContext.cols)
         }
       }
 
@@ -260,7 +283,7 @@ object Main extends CaseApp[Options] {
       val glitchThreshold = (glitchProbability * 128) / 100
       while (fy < frameContext.rows) {
         val colorRow = colorBuffer(fy)
-        val charRow = charBuffer(fy)
+        val charIndexRow = charIndexBuffer(fy)
         while (fx < frameContext.cols) {
           // Optimization: Use bitwise mask (0..127) to approximate probability check
           if ((rng.nextInt() & 127) < fadeThreshold) {
@@ -270,16 +293,15 @@ object Main extends CaseApp[Options] {
               val nextState = if (glitch) state else fadeTable(state)
 
               if (nextState >= 0) {
-                val colorObj = stateToColor(nextState)
-                val charCode = charRow(fx)
-                val charGlitched = if (glitch) sets.randomChar.toChar else charCode
+                val charIndex = charIndexRow(fx)
+                val newCharIndex = if (glitch) rng.nextInt(sets.length) else charIndex
 
-                // Assuming default background as per original logic which preserved it but drops only use default
-                val charNew = new TextCharacter(charGlitched, colorObj, TextColor.ANSI.DEFAULT)
+                // Lookup precomputed character
+                val charNew = charCache(nextState)(newCharIndex)
                 rainGraphics.setCharacter(fx, fy, charNew)
 
                 colorRow(fx) = nextState
-                if (glitch) charRow(fx) = charGlitched
+                if (glitch) charIndexRow(fx) = newCharIndex
               } else {
                 rainGraphics.setCharacter(fx, fy, TextCharacter.DEFAULT_CHARACTER)
                 colorRow(fx) = -1
@@ -302,7 +324,7 @@ object Main extends CaseApp[Options] {
         val c  = drop(4)
         // Optimization: Generate index once to lookup both char and precomputed trail character
         val charIndex = rng.nextInt(sets.length)
-        val char = sets.getAsInt(charIndex).toChar
+
         {//advance drops
           if (vX != 0 && frameCounter % vX == 0) {
             val dir = if (vX > 0) 1 else -1
@@ -316,13 +338,13 @@ object Main extends CaseApp[Options] {
         {//paint drop new at next position
           val pXN = drop(0)
           val pYN = drop(1)
-          updateChar(pXN, pYN, new TextCharacter(char, TextColor.ANSI.WHITE_BRIGHT, TextColor.ANSI.DEFAULT, SGR.BOLD), 0)
+          updateChar(pXN, pYN, charIndex, 0)
         }
         {//paint drop faded first step at current position
           val pXN = drop(0)
           val pYN = drop(1)
           if (pXN != pXC || pYN != pYC) {
-            updateChar(pXC, pYC, trailChars(charIndex), 1)
+            updateChar(pXC, pYC, charIndex, 1)
           }
         }
         {
@@ -341,19 +363,37 @@ object Main extends CaseApp[Options] {
       flush()
       frameCounter += 1
     }
-    val animationLoop: ScheduledFuture[?] = scheduler.scheduleAtFixedRate(frameFn, 0, frameInterval, java.util.concurrent.TimeUnit.MILLISECONDS)
-    //shutdown handler
+
     Runtime.getRuntime.addShutdownHook(new Thread(() => {
       scheduler.shutdown()
       setCursorVisible(true)
     }))
-    try {
-      animationLoop.get()
-    } catch {
-      case e: Exception =>
+
+    if (options.frameInterval <= 0) {
+      try {
+        while (options.maxFrames <= 0 || frameCounter < options.maxFrames) {
+          frameFn.run()
+        }
+      } catch {
+        case e: RuntimeException if e.getMessage == "Max frames reached" => // OK
+        case e: Exception => e.printStackTrace()
+      } finally {
+        scheduler.shutdown()
         close()
-        e.printStackTrace()
-        System.exit(1)
+      }
+    } else {
+      val animationLoop: ScheduledFuture[?] = scheduler.scheduleAtFixedRate(frameFn, 0, options.frameInterval, java.util.concurrent.TimeUnit.MILLISECONDS)
+      try {
+        animationLoop.get()
+      } catch {
+        case e: java.util.concurrent.ExecutionException if e.getCause.getMessage == "Max frames reached" =>
+          scheduler.shutdown()
+          close()
+        case e: Exception =>
+          close()
+          e.printStackTrace()
+          System.exit(1)
+      }
     }
   }
 
