@@ -25,6 +25,12 @@ case class Options(
   @HelpMessage("Sets of unicode chars and their weights")
   @ValueDescription("ranges, named sets, and weights, e.g. '0x30A0-0x30FF:2,ascii_uppercase:1'")
   unicodeChars: String = "0x30A0-0x30FF,0xFF10-0xFF19",
+  @HelpMessage("Max frames to run (for benchmarking, -1 for infinite)")
+  @ValueDescription("Number of frames")
+  maxFrames: Int = -1,
+  @HelpMessage("Frame interval in milliseconds")
+  @ValueDescription("milliseconds")
+  frameInterval: Int = 50,
 )
 
 object Options {
