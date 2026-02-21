@@ -170,8 +170,6 @@ object Main extends CaseApp[Options] {
       case _ => // terminal does not support mouse capture
     }
 
-    //frame interval with scheduler
-    val scheduler = new java.util.concurrent.ScheduledThreadPoolExecutor(1)
     val testPatternGraphics = newTextGraphics()
     testPatternGraphics.setForegroundColor(TextColor.ANSI.RED_BRIGHT)
     val rainGraphics = newTextGraphics()
@@ -247,11 +245,6 @@ object Main extends CaseApp[Options] {
     val testPatternFn: (Terminal, KeyStroke) => Unit = if (options.testPattern) testPatternOnFn else testPatternOffFn
 
     val frameFn: Runnable = () => {
-      // Check max frames for benchmark
-      if (options.maxFrames > 0 && frameCounter >= options.maxFrames) {
-        throw new RuntimeException("Max frames reached")
-      }
-
       var tiD: KeyStroke = terminal.pollInput()
       var ti = tiD
       var draining = true
@@ -367,35 +360,54 @@ object Main extends CaseApp[Options] {
       frameCounter += 1
     }
 
-    Runtime.getRuntime.addShutdownHook(new Thread(() => {
-      scheduler.shutdown()
-      setCursorVisible(true)
-    }))
-
-    if (options.frameInterval <= 0) {
+    val shutdownHook = new Thread(() => {
       try {
-        while (options.maxFrames <= 0 || frameCounter < options.maxFrames) {
-          frameFn.run()
-        }
+        setCursorVisible(true)
       } catch {
-        case e: RuntimeException if e.getMessage == "Max frames reached" => // OK
-        case e: Exception => e.printStackTrace()
-      } finally {
-        scheduler.shutdown()
-        close()
+        case _: Exception => // ignore
       }
-    } else {
-      val animationLoop: ScheduledFuture[?] = scheduler.scheduleAtFixedRate(frameFn, 0, options.frameInterval, java.util.concurrent.TimeUnit.MILLISECONDS)
+    })
+    Runtime.getRuntime.addShutdownHook(shutdownHook)
+
+    try {
+      if (options.frameInterval <= 0) {
+        try {
+          while (options.maxFrames <= 0 || frameCounter < options.maxFrames) {
+            frameFn.run()
+          }
+        } catch {
+          case e: Exception => e.printStackTrace()
+        }
+      } else {
+        val scheduler = new java.util.concurrent.ScheduledThreadPoolExecutor(1)
+        val schedulerHook = new Thread(() => { val _ = scheduler.shutdownNow() })
+        Runtime.getRuntime.addShutdownHook(schedulerHook)
+        try {
+          val frameWrapper: Runnable = () => {
+            if (options.maxFrames > 0 && frameCounter >= options.maxFrames) {
+               throw new RuntimeException("Max frames reached")
+            }
+            frameFn.run()
+          }
+          val animationLoop: ScheduledFuture[?] = scheduler.scheduleAtFixedRate(frameWrapper, 0, options.frameInterval, java.util.concurrent.TimeUnit.MILLISECONDS)
+          animationLoop.get()
+        } catch {
+          case e: java.util.concurrent.ExecutionException if e.getCause.getMessage == "Max frames reached" =>
+            // Expected for maxFrames limit
+          case e: Exception =>
+            e.printStackTrace()
+        } finally {
+          try { Runtime.getRuntime.removeShutdownHook(schedulerHook) } catch { case _: Exception => () }
+          scheduler.shutdownNow()
+        }
+      }
+    } finally {
+      try { Runtime.getRuntime.removeShutdownHook(shutdownHook) } catch { case _: Exception => () }
       try {
-        animationLoop.get()
+        setCursorVisible(true)
+        close()
       } catch {
-        case e: java.util.concurrent.ExecutionException if e.getCause.getMessage == "Max frames reached" =>
-          scheduler.shutdown()
-          close()
-        case e: Exception =>
-          close()
-          e.printStackTrace()
-          System.exit(1)
+        case _: Exception => // ignore
       }
     }
   }
