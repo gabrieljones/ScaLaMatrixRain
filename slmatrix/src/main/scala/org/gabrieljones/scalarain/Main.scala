@@ -394,7 +394,7 @@ object Main extends CaseApp[Options] {
           case e: Exception =>
             e.printStackTrace()
         } finally {
-          Runtime.getRuntime.removeShutdownHook(schedulerHook)
+          try { Runtime.getRuntime.removeShutdownHook(schedulerHook) } catch { case _: Exception => () }
           scheduler.shutdownNow()
         }
       }
