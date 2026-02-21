@@ -31,6 +31,9 @@ case class Options(
   @HelpMessage("Frame interval in milliseconds")
   @ValueDescription("milliseconds")
   frameInterval: Int = 50,
+  @HelpMessage("Fade color (green, red, blue, cyan, magenta, yellow, white) or base,step")
+  @ValueDescription("color name or base,step")
+  fadeColor: String = "green",
 )
 
 object Options {

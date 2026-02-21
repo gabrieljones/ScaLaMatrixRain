@@ -22,13 +22,15 @@ class MainBenchmark {
 
     val sets = Options.parseWeightedSets(options.unicodeChars)
 
+    val colorContext = ColorContext.resolve(options.fadeColor)
+
     // Warmup
     val warmupOptions = options.copy(maxFrames = 10)
-    Main.runLoop(warmupOptions, terminal, sets)
+    Main.runLoop(warmupOptions, terminal, sets, colorContext)
 
     // Measure
     val start = System.nanoTime()
-    Main.runLoop(options, terminal, sets)
+    Main.runLoop(options, terminal, sets, colorContext)
     val end = System.nanoTime()
 
     val durationMs = TimeUnit.NANOSECONDS.toMillis(end - start)
