@@ -6,6 +6,7 @@ import org.gabrieljones.scalarain.Physics.Vector2
 import org.gabrieljones.scalarain.Physics.Vector2.*
 import org.gabrieljones.scalarain.Physics.Acceleration.Gravity
 import org.gabrieljones.scalarain.Physics.Acceleration.Rain
+import org.gabrieljones.scalarain.Physics.Acceleration
 import java.util.concurrent.ThreadLocalRandom
 import com.googlecode.lanterna.terminal.Terminal
 
@@ -122,5 +123,37 @@ class PhysicsTest {
     assertFalse(gravity.outOfBounds(50, 52))
     assertFalse(gravity.outOfBounds(0, 0))
     assertFalse(gravity.outOfBounds(99, 99))
+  }
+
+  @Test
+  def testResolvePhysics(): Unit = {
+    // Existing options
+    assertTrue(Acceleration.fromName("rain").isInstanceOf[Acceleration.Rain.type])
+    assertTrue(Acceleration.fromName("warp").isInstanceOf[Acceleration.Warp.type])
+    val spiral = Acceleration.fromName("spiral").asInstanceOf[Acceleration.Spiral]
+    assertEquals(-1.4, spiral.angle, 0.001)
+
+    // New options
+    val gravity = Acceleration.fromName("gravity").asInstanceOf[Acceleration.Gravity]
+    assertEquals(1, gravity.strength)
+
+    val hole = Acceleration.fromName("hole").asInstanceOf[Acceleration.GravityCenter]
+    assertEquals(1, hole.strength)
+
+    val repel = Acceleration.fromName("repel").asInstanceOf[Acceleration.GravityCenter]
+    assertEquals(-1, repel.strength)
+
+    val swirl = Acceleration.fromName("swirl").asInstanceOf[Acceleration.Spiral]
+    assertEquals(0.5, swirl.angle, 0.001)
+
+    val vortex = Acceleration.fromName("vortex").asInstanceOf[Acceleration.Spiral]
+    assertEquals(3.0, vortex.angle, 0.001)
+  }
+
+  @Test
+  def testInvalidPhysics(): Unit = {
+    assertThrows(classOf[IllegalArgumentException], () => {
+      Acceleration.fromName("invalid_physics_option")
+    })
   }
 }

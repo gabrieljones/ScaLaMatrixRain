@@ -23,6 +23,18 @@ object Physics {
   }
 
   object Acceleration {
+    def fromName(name: String): Acceleration = name.toLowerCase match {
+      case "rain"    => Rain
+      case "warp"    => Warp
+      case "spiral"  => Spiral(-1.4)
+      case "gravity" => Gravity(1)
+      case "hole"    => GravityCenter(1)
+      case "repel"   => GravityCenter(-1)
+      case "swirl"   => Spiral(0.5)
+      case "vortex"  => Spiral(3.0)
+      case _         => throw new IllegalArgumentException(s"Unknown physics: $name")
+    }
+
     //    case object None extends Acceleration {
     //      override def apply(vX: Int, vY: Int, x: Int, y: Int): Vector2 = Vector2(vX, vY)
     //    }
