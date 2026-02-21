@@ -32,6 +32,9 @@ object Physics {
       case "repel"   => GravityCenter(-1)
       case "swirl"   => Spiral(0.5)
       case "vortex"  => Spiral(3.0)
+      case "meteor"  => Meteor
+      case "bounce"  => Bounce
+      case "snow"    => Snow
       case _         => throw new IllegalArgumentException(s"Unknown physics: $name")
     }
 
@@ -152,6 +155,97 @@ object Physics {
         val maxRadius = Math.max(centerX, centerY)
         math.abs(x - centerX) < 4         && math.abs(y - centerY) < 4 ||
         math.abs(x - centerX) > maxRadius && math.abs(y - centerY) > maxRadius
+      }
+    }
+
+    case object Meteor extends Acceleration {
+      override def apply(vX: Int, vY: Int, x: Int, y: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = {
+        val vYNew = Math.max(1, vY - 1)
+        Vector2(vX, vYNew)
+      }
+
+      override def startVector(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = {
+        val dirX = if (rng.nextBoolean()) 1 else -1
+        val vX = rng.nextInt(2, 6) * dirX
+        Vector2(vX, 32)
+      }
+
+      override def startPosition(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = {
+        Vector2(rng.nextInt(frameContext.w), 0)
+      }
+
+      override def newPosition(mouseX: Int, mouseY: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = {
+        startPosition
+      }
+
+      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext): Boolean = {
+        x < 0 || x >= frameContext.w || y >= frameContext.h
+      }
+    }
+
+    case object Bounce extends Acceleration {
+      override def apply(vX: Int, vY: Int, x: Int, y: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = {
+        var newVX = vX
+        var newVY = vY
+
+        if ((x <= 0 && vX < 0) || (x >= frameContext.w - 1 && vX > 0)) {
+          newVX = -vX
+        }
+
+        if ((y <= 0 && vY < 0) || (y >= frameContext.h - 1 && vY > 0)) {
+          newVY = -vY
+        }
+
+        Vector2(newVX, newVY)
+      }
+
+      override def startVector(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = {
+        def randomVelocity: Int = {
+           val speed = rng.nextInt(1, 10)
+           val dir = if (rng.nextBoolean()) 1 else -1
+           speed * dir
+        }
+        Vector2(randomVelocity, randomVelocity)
+      }
+
+      override def startPosition(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = {
+        Vector2(rng.nextInt(frameContext.w), rng.nextInt(frameContext.h))
+      }
+
+      override def newPosition(mouseX: Int, mouseY: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = {
+        startPosition
+      }
+
+      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext): Boolean = false
+    }
+
+    case object Snow extends Acceleration {
+      override def apply(vX: Int, vY: Int, x: Int, y: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = {
+        var newVX = vX
+        if (rng.nextInt(20) == 0) {
+           val drift = rng.nextInt(5, 20)
+           val dir = if (rng.nextBoolean()) 1 else -1
+           newVX = drift * dir
+        }
+        Vector2(newVX, vY)
+      }
+
+      override def startVector(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = {
+         val vY = rng.nextInt(4, 9)
+         val vX = rng.nextInt(5, 20) * (if (rng.nextBoolean()) 1 else -1)
+         Vector2(vX, vY)
+      }
+
+      override def startPosition(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = {
+        Vector2(rng.nextInt(frameContext.w), 0)
+      }
+
+      override def newPosition(mouseX: Int, mouseY: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = {
+         startPosition
+      }
+
+      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext): Boolean = {
+         y >= frameContext.h
       }
     }
 
