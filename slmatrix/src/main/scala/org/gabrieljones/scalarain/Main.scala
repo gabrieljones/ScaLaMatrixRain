@@ -20,6 +20,8 @@ object Main extends CaseApp[Options] {
   val glitchProbability = 25
   def run(options: Options, remaining: RemainingArgs): Unit = {
     val sets: SetsOfCodePoints = Options.parseWeightedSets(options.unicodeChars)
+    val colorContext = ColorContext.resolve(options.fadeColor)
+    val baseColor = colorContext.baseColor
 
     //lanterna copy screen
     val defaultTerminalFactory = new DefaultTerminalFactory()
@@ -30,14 +32,14 @@ object Main extends CaseApp[Options] {
     terminal.cursorShow()
 
     if (options.scenes.contains("cursorBlink")) {
-      setForegroundColor(TextColor.ANSI.GREEN_BRIGHT)
+      setForegroundColor(baseColor)
       setCursorPosition(TerminalPosition(0, 0))
       terminal.cursorBlinkOn()
       terminal.sleep(5000)
     }
 
     if (options.scenes.contains("trace")) {
-      setForegroundColor(TextColor.ANSI.GREEN_BRIGHT)
+      setForegroundColor(baseColor)
       setCursorPosition(TerminalPosition(0, 0))
       terminal.cursorBlinkOn()
 
@@ -59,7 +61,7 @@ object Main extends CaseApp[Options] {
 
     if (options.scenes.contains("wakeUp")) {
       terminal.cursorHide()
-      setForegroundColor(TextColor.ANSI.GREEN_BRIGHT)
+      setForegroundColor(baseColor)
       clearScreen()
       val pos = TerminalPosition(5, 3)
       setCursorPosition(pos)
@@ -95,7 +97,7 @@ object Main extends CaseApp[Options] {
 
     if (options.scenes.contains("traceFail")) {
       clearScreen()
-      setForegroundColor(TextColor.ANSI.GREEN_BRIGHT)
+      setForegroundColor(baseColor)
       setCursorPosition(TerminalPosition(0, 0))
       terminal.cursorBlinkOn()
       terminal.sleep(5000)
@@ -130,12 +132,13 @@ object Main extends CaseApp[Options] {
     }
 
     if (options.scenes.contains("rain")) {
-      runLoop(options, terminal, sets)
+      runLoop(options, terminal, sets, colorContext)
     }
   }
 
-  def runLoop(options: Options, terminal: Terminal, sets: SetsOfCodePoints): Unit = {
+  def runLoop(options: Options, terminal: Terminal, sets: SetsOfCodePoints, colorContext: ColorContext): Unit = {
     import terminal._
+    import colorContext._
 
     // Optimization: Precompute faded white color and TextCharacters to avoid repeated allocations and lookups
     // Cache dimensions: [State][CharIndex]
@@ -406,39 +409,6 @@ object Main extends CaseApp[Options] {
     drop
   }
 
-  // Optimization: Pre-computed state transition tables for fast lookups.
-  // Represents color lifecycle: White -> Faded... -> Empty (-1).
-  val colorBase = 46
-  val fadeStates: IndexedSeq[TextColor] = (colorBase to (colorBase - 30) by -6).map(i => new TextColor.Indexed(i))
-  val maxState: Int = fadeStates.length
-
-  val fadeTable: Array[Int] = new Array[Int](maxState + 1)
-  val stateToColor: Array[TextColor] = new Array[TextColor](maxState + 1)
-  val colorToState: java.util.IdentityHashMap[TextColor, java.lang.Integer] = new java.util.IdentityHashMap[TextColor, java.lang.Integer]()
-
-  // Initialize state tables
-  // State 0 is White Bright (Head)
-  stateToColor(0) = TextColor.ANSI.WHITE_BRIGHT
-  colorToState.put(TextColor.ANSI.WHITE_BRIGHT, 0)
-  fadeTable(0) = 1 // Transitions to State 1
-
-  // States 1..N are the fade sequence
-  fadeStates.zipWithIndex.foreach { case (color, idx) =>
-    val state = idx + 1
-    stateToColor(state) = color
-    colorToState.put(color, state)
-
-    // Calculate transition to next state
-    if (state < maxState) {
-      fadeTable(state) = state + 1
-    } else {
-      fadeTable(state) = -1 // End of lifecycle (Empty)
-    }
-  }
-
-  // Map clear/default colors to -1 (Empty)
-  colorToState.put(TextColor.ANSI.DEFAULT, -1)
-  colorToState.put(TextColor.ANSI.RED, -1)
 
 
   private var _cursorBlinkOn  = false
