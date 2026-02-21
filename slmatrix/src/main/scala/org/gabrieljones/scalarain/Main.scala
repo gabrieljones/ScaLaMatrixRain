@@ -399,7 +399,7 @@ object Main extends CaseApp[Options] {
         }
       }
     } finally {
-      Runtime.getRuntime.removeShutdownHook(shutdownHook)
+      try { Runtime.getRuntime.removeShutdownHook(shutdownHook) } catch { case _: Exception => () }
       try {
         setCursorVisible(true)
         close()
