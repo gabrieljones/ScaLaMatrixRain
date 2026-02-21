@@ -18,7 +18,7 @@ case class Options(
     "rain",
   ),
   @HelpMessage("Which physics to use")
-  @ValueDescription("rain,warp,spiral")
+  @ValueDescription("rain,warp,spiral,gravity,hole,repel,swirl,vortex")
   physics: String = "rain",
   @HelpMessage("Display the test pattern during rain scene")
   testPattern: Boolean = false,

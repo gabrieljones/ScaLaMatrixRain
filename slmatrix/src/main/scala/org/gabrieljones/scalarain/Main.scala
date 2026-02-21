@@ -198,11 +198,7 @@ object Main extends CaseApp[Options] {
       }
     }
 
-    val acceleration: Physics.Acceleration = options.physics match {
-      case "rain"   => Physics.Acceleration.Rain
-      case "spiral" => Physics.Acceleration.Spiral(-1.4)
-      case "warp"   => Physics.Acceleration.Warp
-    }
+    val acceleration: Physics.Acceleration = Physics.Acceleration.fromName(options.physics)
 
     val dropQuantity = (dropQuantityFactor * frameContext.cols).toInt
     val drops: Array[Array[Int]] = Array.fill(dropQuantity) {
