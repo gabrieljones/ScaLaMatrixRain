@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test
 import org.gabrieljones.scalarain.Physics.Vector2
 import org.gabrieljones.scalarain.Physics.Vector2.*
 import org.gabrieljones.scalarain.Physics.Acceleration.Gravity
+import org.gabrieljones.scalarain.Physics.Acceleration.GravityCenter
 import org.gabrieljones.scalarain.Physics.Acceleration.Rain
 import org.gabrieljones.scalarain.Physics.Acceleration
 import java.util.concurrent.ThreadLocalRandom
@@ -123,6 +124,28 @@ class PhysicsTest {
     assertFalse(gravity.outOfBounds(50, 52))
     assertFalse(gravity.outOfBounds(0, 0))
     assertFalse(gravity.outOfBounds(99, 99))
+  }
+
+  @Test
+  def testGravityCenterApply(): Unit = {
+    given frameContext: FrameContext = new TestFrameContext(100, 100)
+    given rng: ThreadLocalRandom = ThreadLocalRandom.current()
+
+    // Test Attraction (Hole)
+    val hole = GravityCenter(strength = 1)
+    // Place point to the left of center (x=40, y=50). Center is (50, 50).
+    // Vector towards center is (+10, 0).
+    // Expect positive velocity (moving right).
+    val vHole = hole.apply(0, 0, 40, 50)
+    assertTrue(vHole.x > 0, s"Expected positive x velocity for hole attraction, got ${vHole.x}")
+
+    // Test Repulsion (Repel)
+    val repel = GravityCenter(strength = -1)
+    // Place point to the left of center (x=40, y=50). Center is (50, 50).
+    // Vector towards center is (+10, 0).
+    // Expect negative velocity (moving left, away from center).
+    val vRepel = repel.apply(0, 0, 40, 50)
+    assertTrue(vRepel.x < 0, s"Expected negative x velocity for repel repulsion, got ${vRepel.x}")
   }
 
   @Test
