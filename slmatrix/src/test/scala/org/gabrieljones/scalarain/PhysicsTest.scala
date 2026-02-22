@@ -171,6 +171,81 @@ class PhysicsTest {
 
     val vortex = Acceleration.fromName("vortex").asInstanceOf[Acceleration.Spiral]
     assertEquals(3.0, vortex.angle, 0.001)
+
+    assertTrue(Acceleration.fromName("meteor").isInstanceOf[Acceleration.Meteor.type])
+    assertTrue(Acceleration.fromName("bounce").isInstanceOf[Acceleration.Bounce.type])
+    assertTrue(Acceleration.fromName("snow").isInstanceOf[Acceleration.Snow.type])
+  }
+
+  @Test
+  def testMeteorApply(): Unit = {
+    given frameContext: FrameContext = new TestFrameContext(100, 100)
+    given rng: ThreadLocalRandom = ThreadLocalRandom.current()
+    val meteor = Acceleration.Meteor
+
+    // Test acceleration
+    val v1 = meteor.apply(5, 32, 50, 0)
+    assertEquals(5, v1.x)
+    assertEquals(31, v1.y) // vY - 1, min 1
+
+    val v2 = meteor.apply(5, 2, 50, 0)
+    assertEquals(5, v2.x)
+    assertEquals(1, v2.y)
+
+    val v3 = meteor.apply(5, 1, 50, 0)
+    assertEquals(5, v3.x)
+    assertEquals(1, v3.y) // Clamped at 1
+  }
+
+  @Test
+  def testBounceApply(): Unit = {
+    given frameContext: FrameContext = new TestFrameContext(100, 100)
+    given rng: ThreadLocalRandom = ThreadLocalRandom.current()
+    val bounce = Acceleration.Bounce
+
+    // Center, no bounce
+    val v1 = bounce.apply(5, 5, 50, 50)
+    assertEquals(5, v1.x)
+    assertEquals(5, v1.y)
+
+    // Left wall, moving left (vX < 0) -> Bounce
+    val v2 = bounce.apply(-5, 5, 0, 50)
+    assertEquals(5, v2.x) // Flipped
+    assertEquals(5, v2.y)
+
+    // Left wall, moving right (vX > 0) -> No bounce (leaving wall)
+    val v3 = bounce.apply(5, 5, 0, 50)
+    assertEquals(5, v3.x)
+    assertEquals(5, v3.y)
+
+    // Right wall (w-1 = 99), moving right -> Bounce
+    val v4 = bounce.apply(5, 5, 99, 50)
+    assertEquals(-5, v4.x)
+    assertEquals(5, v4.y)
+
+    // Top wall (y=0), moving up (vY < 0) -> Bounce
+    val v5 = bounce.apply(5, -5, 50, 0)
+    assertEquals(5, v5.x)
+    assertEquals(5, v5.y)
+  }
+
+  @Test
+  def testSnowApply(): Unit = {
+    given frameContext: FrameContext = new TestFrameContext(100, 100)
+    given rng: ThreadLocalRandom = ThreadLocalRandom.current()
+    val snow = Acceleration.Snow
+
+    // Snow apply is random. We can check basic properties.
+    // vY should remain constant (passed through).
+    // vX might change.
+
+    var changed = false
+    for (_ <- 0 until 1000) {
+      val v = snow.apply(10, 5, 50, 0)
+      assertEquals(5, v.y)
+      if (v.x != 10) changed = true
+    }
+    assertTrue(changed, "Snow vX should eventually change due to random drift")
   }
 
   @Test
