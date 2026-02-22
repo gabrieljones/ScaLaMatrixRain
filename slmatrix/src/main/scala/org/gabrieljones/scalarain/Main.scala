@@ -270,24 +270,20 @@ object Main extends CaseApp[Options] {
 
       given rng: ThreadLocalRandom = ThreadLocalRandom.current()
 
-      // Encapsulate random bit buffering
-      class RandomBitBuffer(private val rng: ThreadLocalRandom) {
-        private var buffer: Long = rng.nextLong()
-        private var remaining: Int = 64
-
-        // Inline for performance
-        inline def next7Bits(): Int = {
-          if (remaining < 7) {
-            buffer = rng.nextLong()
-            remaining = 64
-          }
-          val result = (buffer & 127).toInt
-          buffer >>>= 7
-          remaining -= 7
-          result
+      // Bit-buffered RNG: extract 7 bits at a time from a Long.
+      // Uses local vars (stack/register) instead of object fields to avoid indirection.
+      var randomBits: Long = rng.nextLong()
+      var bitsRemaining: Int = 64
+      inline def next7Bits(): Int = {
+        if (bitsRemaining < 7) {
+          randomBits = rng.nextLong()
+          bitsRemaining = 64
         }
+        val result = (randomBits & 127).toInt
+        randomBits >>>= 7
+        bitsRemaining -= 7
+        result
       }
-      val bitBuffer = new RandomBitBuffer(rng)
 
       var fx = 0
       var fy = 0
@@ -298,7 +294,7 @@ object Main extends CaseApp[Options] {
         val charIndexRow = charIndexBuffer(fy)
         while (fx < frameContext.cols) {
           // Optimization: Reuse random bits to reduce entropy generation overhead
-          if (bitBuffer.next7Bits() < fadeThreshold) {
+          if (next7Bits() < fadeThreshold) {
             val state = colorRow(fx)
             if (state >= 0) {
               val glitch = (rng.nextInt() & 127) < glitchThreshold
