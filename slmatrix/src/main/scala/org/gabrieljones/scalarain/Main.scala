@@ -273,12 +273,22 @@ object Main extends CaseApp[Options] {
       var fy = 0
       val fadeThreshold = (fadeProbability * 128) / 100
       val glitchThreshold = (glitchProbability * 128) / 100
+      var randomBits = rng.nextLong()
+      var bitsRemaining = 64
       while (fy < frameContext.rows) {
         val colorRow = colorBuffer(fy)
         val charIndexRow = charIndexBuffer(fy)
         while (fx < frameContext.cols) {
-          // Optimization: Use bitwise mask (0..127) to approximate probability check
-          if ((rng.nextInt() & 127) < fadeThreshold) {
+          // Optimization: Reuse random bits to reduce entropy generation overhead
+          if (bitsRemaining < 7) {
+            randomBits = rng.nextLong()
+            bitsRemaining = 64
+          }
+          val check = (randomBits & 127)
+          randomBits >>>= 7
+          bitsRemaining -= 7
+
+          if (check < fadeThreshold) {
             val state = colorRow(fx)
             if (state >= 0) {
               val glitch = (rng.nextInt() & 127) < glitchThreshold
