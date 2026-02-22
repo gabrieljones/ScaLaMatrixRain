@@ -269,26 +269,36 @@ object Main extends CaseApp[Options] {
       }
 
       given rng: ThreadLocalRandom = ThreadLocalRandom.current()
+
+      // Encapsulate random bit buffering
+      class RandomBitBuffer(private val rng: ThreadLocalRandom) {
+        private var buffer: Long = rng.nextLong()
+        private var remaining: Int = 64
+
+        // Inline for performance
+        inline def next7Bits(): Int = {
+          if (remaining < 7) {
+            buffer = rng.nextLong()
+            remaining = 64
+          }
+          val result = (buffer & 127).toInt
+          buffer >>>= 7
+          remaining -= 7
+          result
+        }
+      }
+      val bitBuffer = new RandomBitBuffer(rng)
+
       var fx = 0
       var fy = 0
       val fadeThreshold = (fadeProbability * 128) / 100
       val glitchThreshold = (glitchProbability * 128) / 100
-      var randomBits = rng.nextLong()
-      var bitsRemaining = 64
       while (fy < frameContext.rows) {
         val colorRow = colorBuffer(fy)
         val charIndexRow = charIndexBuffer(fy)
         while (fx < frameContext.cols) {
           // Optimization: Reuse random bits to reduce entropy generation overhead
-          if (bitsRemaining < 7) {
-            randomBits = rng.nextLong()
-            bitsRemaining = 64
-          }
-          val check = (randomBits & 127)
-          randomBits >>>= 7
-          bitsRemaining -= 7
-
-          if (check < fadeThreshold) {
+          if (bitBuffer.next7Bits() < fadeThreshold) {
             val state = colorRow(fx)
             if (state >= 0) {
               val glitch = (rng.nextInt() & 127) < glitchThreshold
