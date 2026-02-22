@@ -171,11 +171,11 @@ object Physics {
       }
 
       override def startPosition(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = {
-        Vector2(rng.nextInt(frameContext.w), 0)
+        Vector2(rng.nextInt(frameContext.w), rng.nextInt(frameContext.h))
       }
 
       override def newPosition(mouseX: Int, mouseY: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = {
-        startPosition
+        Vector2(rng.nextInt(frameContext.w), 0)
       }
 
       override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext): Boolean = {
@@ -237,15 +237,15 @@ object Physics {
       }
 
       override def startPosition(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = {
-        Vector2(rng.nextInt(frameContext.w), 0)
+        Vector2(rng.nextInt(frameContext.w), rng.nextInt(frameContext.h))
       }
 
       override def newPosition(mouseX: Int, mouseY: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = {
-         startPosition
+        Vector2(rng.nextInt(frameContext.w), 0)
       }
 
       override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext): Boolean = {
-         y >= frameContext.h
+         y >= frameContext.h || x >= (frameContext.w + frameContext.h) || x <= (0 - frameContext.h)
       }
     }
 
