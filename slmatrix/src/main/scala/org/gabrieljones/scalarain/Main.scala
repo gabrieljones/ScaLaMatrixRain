@@ -269,6 +269,22 @@ object Main extends CaseApp[Options] {
       }
 
       given rng: ThreadLocalRandom = ThreadLocalRandom.current()
+
+      // Bit-buffered RNG: extract 7 bits at a time from a Long.
+      // Uses local vars (stack/register) instead of object fields to avoid indirection.
+      var randomBits: Long = rng.nextLong()
+      var bitsRemaining: Int = 64
+      inline def next7Bits(): Int = {
+        if (bitsRemaining < 7) {
+          randomBits = rng.nextLong()
+          bitsRemaining = 64
+        }
+        val result = (randomBits & 127).toInt
+        randomBits >>>= 7
+        bitsRemaining -= 7
+        result
+      }
+
       var fx = 0
       var fy = 0
       val fadeThreshold = (fadeProbability * 128) / 100
@@ -277,8 +293,8 @@ object Main extends CaseApp[Options] {
         val colorRow = colorBuffer(fy)
         val charIndexRow = charIndexBuffer(fy)
         while (fx < frameContext.cols) {
-          // Optimization: Use bitwise mask (0..127) to approximate probability check
-          if ((rng.nextInt() & 127) < fadeThreshold) {
+          // Optimization: Reuse random bits to reduce entropy generation overhead
+          if (next7Bits() < fadeThreshold) {
             val state = colorRow(fx)
             if (state >= 0) {
               val glitch = (rng.nextInt() & 127) < glitchThreshold
