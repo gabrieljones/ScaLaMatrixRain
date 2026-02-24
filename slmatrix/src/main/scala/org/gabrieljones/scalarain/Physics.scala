@@ -61,7 +61,8 @@ object Physics {
     case object Rain extends Acceleration {
 
       override def apply(vX: Int, vY: Int, x: Int, y: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = {
-        val deltaY = rng.nextInt(-32, 32) / 31 //accelerate = -1, 0, or 1, make changes less likely
+        val r = rng.nextInt(64)
+        val deltaY = if (r < 2) -1 else if (r == 2) 1 else 0 // accelerate = -1, 0, or 1, make changes less likely
         val vYNew = vY + deltaY
         val vYClamped = if (vYNew > 0 && vYNew < 32) { //if new velocity is in bounds update
           vYNew
