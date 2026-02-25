@@ -297,7 +297,8 @@ object Main extends CaseApp[Options] {
           if (next7Bits() < fadeThreshold) {
             val state = colorRow(fx)
             if (state >= 0) {
-              val glitch = (rng.nextInt() & 127) < glitchThreshold
+              // Optimization: Reuse bit buffer instead of expensive RNG call
+              val glitch = next7Bits() < glitchThreshold
               val nextState = if (glitch) state else fadeTable(state)
 
               if (nextState >= 0) {
