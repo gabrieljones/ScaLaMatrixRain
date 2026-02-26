@@ -23,12 +23,15 @@ jobs:
     - name: Run Terminal.app and record screen
       run: |
         SLMATRIX_BIN="$(pwd)/slmatrix/build/native/nativeCompile/slmatrix"
-        osascript -e "tell application \"Terminal\"" \
-                  -e "ignoring application responses" \
-                  -e "do script \"'$SLMATRIX_BIN' --scenes=rain\"" \
-                  -e "end ignoring" \
-                  -e "end tell"
+        # Launch Terminal first
         osascript -e 'tell application "Terminal" to activate'
+        sleep 2
+        # Run script with ignoring responses
+        osascript -e "ignoring application responses" \
+                  -e "tell application \"Terminal\"" \
+                  -e "do script \"'$SLMATRIX_BIN' --scenes=rain\"" \
+                  -e "end tell" \
+                  -e "end ignoring"
         sleep 1
         osascript -e 'tell application "Terminal" to set bounds of front window to {0, 0, 1024, 768}'
         sleep 5
