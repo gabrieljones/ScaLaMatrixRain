@@ -7,6 +7,7 @@ import org.gabrieljones.scalarain.Physics.Vector2.*
 import org.gabrieljones.scalarain.Physics.Acceleration.Gravity
 import org.gabrieljones.scalarain.Physics.Acceleration.GravityCenter
 import org.gabrieljones.scalarain.Physics.Acceleration.Rain
+import org.gabrieljones.scalarain.Physics.Acceleration.Spiral
 import org.gabrieljones.scalarain.Physics.Acceleration
 import java.util.concurrent.ThreadLocalRandom
 import com.googlecode.lanterna.terminal.Terminal
@@ -146,6 +147,45 @@ class PhysicsTest {
     // Expect negative velocity (moving left, away from center).
     val vRepel = repel.apply(0, 0, 40, 50)
     assertTrue(vRepel.x < 0, s"Expected negative x velocity for repel repulsion, got ${vRepel.x}")
+  }
+
+  @Test
+  def testSpiralApply(): Unit = {
+    given frameContext: FrameContext = new TestFrameContext(100, 100)
+    given rng: ThreadLocalRandom = ThreadLocalRandom.current()
+
+    val spiral = Spiral(angle = 1.4)
+    // Center is (50, 50)
+
+    // Test Case 1: Point (60, 50)
+    // dirX = 50 - 60 = -10, dirY = 50 - 50 = 0
+    // angleOrth = atan2(0, -10) = pi (3.14159...)
+    // angleNew = pi + 1.4 = 4.54159...
+    // vX = 1/cos(4.54...) = 1/(-0.1699...) = -5.88... -> -5
+    // vY = 2/sin(4.54...) = 2/(-0.985...) = -2.03... -> -2
+    val v1 = spiral.apply(0, 0, 60, 50)
+    assertEquals(-5, v1.x)
+    assertEquals(-2, v1.y)
+
+    // Test Case 2: Point (50, 40)
+    // dirX = 50 - 50 = 0, dirY = 50 - 40 = 10
+    // angleOrth = atan2(10, 0) = pi/2 (1.57079...)
+    // angleNew = pi/2 + 1.4 = 2.97079...
+    // vX = 1/cos(2.97...) = 1/(-0.985...) = -1.01... -> -1
+    // vY = 2/sin(2.97...) = 2/(0.1699...) = 11.77... -> 11
+    val v2 = spiral.apply(0, 0, 50, 40)
+    assertEquals(-1, v2.x)
+    assertEquals(11, v2.y)
+
+    // Test Case 3: Center (50, 50)
+    // dirX = 0, dirY = 0
+    // angleOrth = atan2(0, 0) = 0
+    // angleNew = 0 + 1.4 = 1.4
+    // vX = 1/cos(1.4) = 1/0.1699... = 5.88... -> 5
+    // vY = 2/sin(1.4) = 2/0.985... = 2.02... -> 2
+    val v3 = spiral.apply(0, 0, 50, 50)
+    assertEquals(5, v3.x)
+    assertEquals(2, v3.y)
   }
 
   @Test
