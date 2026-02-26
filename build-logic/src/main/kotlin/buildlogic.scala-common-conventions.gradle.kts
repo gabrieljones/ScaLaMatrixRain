@@ -5,7 +5,7 @@ plugins {
 }
 
 scala {
-  scalaVersion = "3.8.1"
+  scalaVersion = "3.8.2"
 }
 
 //workaround for https://github.com/gradle/gradle/issues/6854
