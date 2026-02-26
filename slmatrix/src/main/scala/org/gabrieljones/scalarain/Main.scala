@@ -270,19 +270,11 @@ object Main extends CaseApp[Options] {
 
       given rng: ThreadLocalRandom = ThreadLocalRandom.current()
 
-      // Bit-buffered RNG: extract 7 bits at a time from a Long.
-      // Uses local vars (stack/register) instead of object fields to avoid indirection.
-      var randomBits: Long = rng.nextLong()
-      var bitsRemaining: Int = 64
+      // Local LCG to avoid ThreadLocalRandom overhead in tight loop
+      var seed: Long = rng.nextLong()
       inline def next7Bits(): Int = {
-        if (bitsRemaining < 7) {
-          randomBits = rng.nextLong()
-          bitsRemaining = 64
-        }
-        val result = (randomBits & 127).toInt
-        randomBits >>>= 7
-        bitsRemaining -= 7
-        result
+        seed = seed * 6364136223846793005L + 1442695040888963407L
+        (seed >>> 57).toInt
       }
 
       var fx = 0
