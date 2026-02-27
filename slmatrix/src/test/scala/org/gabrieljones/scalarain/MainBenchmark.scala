@@ -7,7 +7,7 @@ import java.util.concurrent.TimeUnit
 
 class MainBenchmark {
 
-  // @Test // Uncomment to run benchmark manually
+  @Test // Uncomment to run benchmark manually
   def benchmarkRunLoop(): Unit = {
     // Create a virtual terminal with a fixed size
     val terminal = new DefaultVirtualTerminal(new TerminalSize(120, 40))

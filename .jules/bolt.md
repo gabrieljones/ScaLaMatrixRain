@@ -14,3 +14,12 @@
 **Insight:** The existing `next7Bits` manual buffering implementation is highly efficient for this specific use case (consuming small entropy chunks). Standard library calls or larger unrolled loops introduce overhead (instruction cache pressure or method call overhead) that outweighs the theoretical benefits. The JVM's JIT seems to optimize the existing compact loop structure very well. Increasing data structure size (padding) hurts cache locality more than the instruction savings help.
 
 **Action:** Avoid replacing custom bit-buffering with standard library calls in extremely hot loops without verifying on the target JVM. Respect the existing "compact code" structure as it likely fits L1i cache better.
+
+## 2026-02-27 - Manual Loop Hoisting Wins
+**Learning:** In the tight render loop of `Main.scala`, hoisting `frameContext.rows` (field access) and `sets.length` (extension method on opaque type) into local variables (`rows`, `setsLength`) improved performance by ~9% (2415 FPS -> 2633 FPS).
+**Insight:** Even with JIT, repeated access to fields or extension methods on opaque types in critical loops can carry overhead (e.g., if the JIT fails to inline or hoist them due to complexity or call depth). Manual hoisting guarantees the values are in local registers.
+**Failures:**
+- Encapsulating LCG in `RandomBitBuffer` class (even with `inline`) caused regression.
+- Flattening `charCache` (2D -> 1D array) caused regression (~800 FPS), possibly due to manual index arithmetic overhead vs JVM's optimized 2D array access.
+- Inline 14-bit extraction from LCG seed caused regression, likely due to increased register pressure or instruction count in the hot path.
+**Action:** Prefer simple manual hoisting of loop invariants. Be cautious with "clever" bitwise or structure flattening optimizations in tight loops where the JVM's default handling of 2D arrays and simple inlining is already highly optimized.
