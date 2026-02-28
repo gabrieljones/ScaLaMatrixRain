@@ -204,7 +204,9 @@ object Main extends CaseApp[Options] {
     val drops: Array[Array[Int]] = Array.fill(dropQuantity) {
       given ThreadLocalRandom = ThreadLocalRandom.current()
       newDrop(
-        new Array[Int](5),
+        // Optimization: Reduced array size from 5 to 4 elements.
+        // Eliminates unused 5th element and avoids unnecessary RNG calls per drop.
+        new Array[Int](4),
         acceleration.startPosition,
         acceleration.startVector,
       )//.tap(_(1) = ThreadLocalRandom.current().nextInt(terminalsSizeRows))
@@ -326,7 +328,6 @@ object Main extends CaseApp[Options] {
         val pYC = drop(1)
         val vX = drop(2)
         val vY = drop(3)
-        val c  = drop(4)
         // Optimization: Generate index once to lookup both char and precomputed trail character
         val charIndex = rng.nextInt(sets.length)
 
@@ -426,7 +427,7 @@ object Main extends CaseApp[Options] {
     drop(1) = pos.y
     drop(2) = vel.x
     drop(3) = vel.y
-    drop(4) = rng.nextInt(2)
+    // Optimization: Removed drop(4) = rng.nextInt(2) as the 5th element was unused, saving an expensive RNG call.
     drop
   }
 
