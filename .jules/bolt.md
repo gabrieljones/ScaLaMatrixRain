@@ -23,3 +23,7 @@
 - Flattening `charCache` (2D -> 1D array) caused regression (~800 FPS), possibly due to manual index arithmetic overhead vs JVM's optimized 2D array access.
 - Inline 14-bit extraction from LCG seed caused regression, likely due to increased register pressure or instruction count in the hot path.
 **Action:** Prefer simple manual hoisting of loop invariants. Be cautious with "clever" bitwise or structure flattening optimizations in tight loops where the JVM's default handling of 2D arrays and simple inlining is already highly optimized.
+
+## 2026-03-01 - [Fast Bounded Random Generation]
+**Learning:** `ThreadLocalRandom.current().nextInt(bound)` incurs significant overhead in hot render loops due to both thread-local lookups and the internal bounds-checking/modulo arithmetic. While bitwise masking works well for powers of 2 (e.g., `& 127`), mapping a uniform random number to an arbitrary bound (like the length of a character set) is much faster using Lemire's multiplication-shift method: `((next31Bits().toLong * bound.toLong) >>> 31).toInt`.
+**Action:** When bounded random integers are required in critical paths, use an inline 31-bit LCG combined with the long multiplication-shift mapping technique instead of standard JDK `Random` methods.
