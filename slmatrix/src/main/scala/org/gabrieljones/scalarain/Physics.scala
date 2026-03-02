@@ -35,6 +35,7 @@ object Physics {
       case "meteor"  => Meteor
       case "bounce"  => Bounce
       case "snow"    => Snow
+      case "fire"    => Fire
       case _         => throw new IllegalArgumentException(s"Unknown physics: $name")
     }
 
@@ -247,6 +248,34 @@ object Physics {
 
       override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext): Boolean = {
          y >= frameContext.h || x >= (frameContext.w + frameContext.h) || x <= (0 - frameContext.h)
+      }
+    }
+
+    case object Fire extends Acceleration {
+      override def apply(vX: Int, vY: Int, x: Int, y: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = {
+        var newVX = vX + rng.nextInt(3) - 1
+        if (newVX > 2) newVX = 2
+        else if (newVX < -2) newVX = -2
+        val newVY = Math.min(-1, vY + rng.nextInt(3) - 1)
+        Vector2(newVX, newVY)
+      }
+
+      override def startVector(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = {
+        val vX = rng.nextInt(-2, 3)
+        val vY = rng.nextInt(-4, -1)
+        Vector2(vX, vY)
+      }
+
+      override def startPosition(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = {
+        Vector2(rng.nextInt(frameContext.w), frameContext.h)
+      }
+
+      override def newPosition(mouseX: Int, mouseY: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = {
+        Vector2(rng.nextInt(frameContext.w), frameContext.h)
+      }
+
+      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext): Boolean = {
+        y < 0 || x < 0 || x >= frameContext.w
       }
     }
 
