@@ -126,4 +126,26 @@ class OptionsTest {
     assertDoesNotThrow(() => Options.parseWeightedSets(input))
     assertEquals(0, Options.parseWeightedSets(input).length)
   }
+
+  @Test
+  def testParseChar(): Unit = {
+    // Valid hex inputs
+    assertEquals(0x41, Options.parseChar("0x41"))
+    assertEquals(0x1F000, Options.parseChar("0x1F000"))
+
+    // Valid single character inputs
+    assertEquals('A'.toInt, Options.parseChar("A"))
+    assertEquals('!'.toInt, Options.parseChar("!"))
+
+    // Invalid character format - more than one char, not hex
+    val e1 = assertThrows(classOf[IllegalArgumentException], () => Options.parseChar("ABC"))
+    assertTrue(e1.getMessage.contains("Invalid character format"))
+
+    // Invalid character format - empty string
+    val e2 = assertThrows(classOf[IllegalArgumentException], () => Options.parseChar(""))
+    assertTrue(e2.getMessage.contains("Invalid character format"))
+
+    // Invalid hex format
+    assertThrows(classOf[NumberFormatException], () => Options.parseChar("0xG"))
+  }
 }
