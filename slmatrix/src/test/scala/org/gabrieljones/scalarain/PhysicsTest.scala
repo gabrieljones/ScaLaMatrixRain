@@ -215,6 +215,7 @@ class PhysicsTest {
     assertTrue(Acceleration.fromName("meteor").isInstanceOf[Acceleration.Meteor.type])
     assertTrue(Acceleration.fromName("bounce").isInstanceOf[Acceleration.Bounce.type])
     assertTrue(Acceleration.fromName("snow").isInstanceOf[Acceleration.Snow.type])
+    assertTrue(Acceleration.fromName("fire").isInstanceOf[Acceleration.Fire.type])
   }
 
   @Test
@@ -286,6 +287,70 @@ class PhysicsTest {
       if (v.x != 10) changed = true
     }
     assertTrue(changed, "Snow vX should eventually change due to random drift")
+  }
+
+  @Test
+  def testFireApply(): Unit = {
+    given frameContext: FrameContext = new TestFrameContext(100, 100)
+    given rng: ThreadLocalRandom = ThreadLocalRandom.current()
+    val fire = Acceleration.Fire
+
+    val v1 = fire.apply(0, -2, 50, 50)
+    assertTrue(v1.y <= -1)
+    assertTrue(v1.x >= -2 && v1.x <= 2)
+  }
+
+  @Test
+  def testFireStartVector(): Unit = {
+    given frameContext: FrameContext = new TestFrameContext(100, 100)
+    given rng: ThreadLocalRandom = ThreadLocalRandom.current()
+    val fire = Acceleration.Fire
+
+    for (_ <- 0 until 100) {
+      val v = fire.startVector
+      assertTrue(v.x >= -2 && v.x <= 2)
+      assertTrue(v.y >= -4 && v.y <= -1)
+    }
+  }
+
+  @Test
+  def testFireStartPosition(): Unit = {
+    given frameContext: FrameContext = new TestFrameContext(100, 100)
+    given rng: ThreadLocalRandom = ThreadLocalRandom.current()
+    val fire = Acceleration.Fire
+
+    for (_ <- 0 until 100) {
+      val p = fire.startPosition
+      assertTrue(p.x >= 0 && p.x < frameContext.cols)
+      assertEquals(frameContext.rows, p.y)
+    }
+  }
+
+  @Test
+  def testFireNewPosition(): Unit = {
+    given frameContext: FrameContext = new TestFrameContext(100, 100)
+    given rng: ThreadLocalRandom = ThreadLocalRandom.current()
+    val fire = Acceleration.Fire
+
+    for (_ <- 0 until 100) {
+      val p = fire.newPosition(0, 0)
+      assertTrue(p.x >= 0 && p.x < frameContext.cols)
+      assertEquals(frameContext.rows, p.y)
+    }
+  }
+
+  @Test
+  def testFireOutOfBounds(): Unit = {
+    given frameContext: FrameContext = new TestFrameContext(100, 100)
+    val fire = Acceleration.Fire
+
+    assertTrue(fire.outOfBounds(50, -1)) // above top
+    assertTrue(fire.outOfBounds(-1, 50)) // left
+    assertTrue(fire.outOfBounds(100, 50)) // right
+
+    assertFalse(fire.outOfBounds(50, 50)) // middle
+    assertFalse(fire.outOfBounds(0, 0))   // top-left edge
+    assertFalse(fire.outOfBounds(99, 99)) // bottom-right edge
   }
 
   @Test
