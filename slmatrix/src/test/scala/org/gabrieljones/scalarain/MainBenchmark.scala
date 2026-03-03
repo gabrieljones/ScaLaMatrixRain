@@ -16,7 +16,7 @@ class MainBenchmark {
     // frameInterval = 0 means unthrottled execution
     val options = Options(
       scenes = Seq("rain"),
-      maxFrames = 500,
+      maxFrames = 2000,
       frameInterval = 0
     )
 
@@ -25,7 +25,7 @@ class MainBenchmark {
     val colorContext = ColorContext.resolve(options.fadeColor)
 
     // Warmup
-    val warmupOptions = options.copy(maxFrames = 10)
+    val warmupOptions = options.copy(maxFrames = 500)
     Main.runLoop(warmupOptions, terminal, sets, colorContext)
 
     // Measure

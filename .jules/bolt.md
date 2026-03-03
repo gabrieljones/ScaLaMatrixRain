@@ -27,3 +27,8 @@
 ## 2026-03-01 - [Fast Bounded Random Generation]
 **Learning:** `ThreadLocalRandom.current().nextInt(bound)` incurs significant overhead in hot render loops due to both thread-local lookups and the internal bounds-checking/modulo arithmetic. While bitwise masking works well for powers of 2 (e.g., `& 127`), mapping a uniform random number to an arbitrary bound (like the length of a character set) is much faster using Lemire's multiplication-shift method: `((next31Bits().toLong * bound.toLong) >>> 31).toInt`.
 **Action:** When bounded random integers are required in critical paths, use an inline 31-bit LCG combined with the long multiplication-shift mapping technique instead of standard JDK `Random` methods.
+
+## 2026-03-03 - [Optimization Success: Array Flattening for Cache Locality]
+**Learning:** Flattening a 2D array (`Array[Array[Int]]`) representing a collection of small structs (e.g., drops with `x`, `y`, `vx`, `vy` components) into a 1D `Array[Int]` with a stride significantly improves performance in hot loops (e.g., from ~1300 FPS to ~2600 FPS in the benchmark).
+**Insight:** This data-oriented design (DoD) optimization reduces memory fragmentation, eliminates object overhead per element, and maximizes CPU cache locality. The JVM's JIT compiler can aggressively optimize sequential access to primitive 1D arrays compared to dereferencing nested arrays.
+**Action:** When managing collections of simple value-like data (structs) accessed sequentially in performance-critical loops, prefer a single flattened primitive array over arrays of objects or 2D arrays to eliminate object header overhead and improve memory access patterns.
