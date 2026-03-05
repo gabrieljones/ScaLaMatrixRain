@@ -348,7 +348,7 @@ object Main extends CaseApp[Options] {
         val vX = dropsFlattened(dI + 2)
         val vY = dropsFlattened(dI + 3)
         // Optimization: Generate index once to lookup both char and precomputed trail character
-        val charIndex = nextBounded(sets.length)
+        val charIndex = nextBounded(setsLength)
 
         {//advance drops
           if (vX != 0 && frameCounter % vX == 0) {
