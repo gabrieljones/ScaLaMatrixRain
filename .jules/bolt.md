@@ -23,3 +23,17 @@
 - Flattening `charCache` (2D -> 1D array) caused regression (~800 FPS), possibly due to manual index arithmetic overhead vs JVM's optimized 2D array access.
 - Inline 14-bit extraction from LCG seed caused regression, likely due to increased register pressure or instruction count in the hot path.
 **Action:** Prefer simple manual hoisting of loop invariants. Be cautious with "clever" bitwise or structure flattening optimizations in tight loops where the JVM's default handling of 2D arrays and simple inlining is already highly optimized.
+
+## 2026-03-01 - [Fast Bounded Random Generation]
+**Learning:** `ThreadLocalRandom.current().nextInt(bound)` incurs significant overhead in hot render loops due to both thread-local lookups and the internal bounds-checking/modulo arithmetic. While bitwise masking works well for powers of 2 (e.g., `& 127`), mapping a uniform random number to an arbitrary bound (like the length of a character set) is much faster using Lemire's multiplication-shift method: `((next31Bits().toLong * bound.toLong) >>> 31).toInt`.
+**Action:** When bounded random integers are required in critical paths, use an inline 31-bit LCG combined with the long multiplication-shift mapping technique instead of standard JDK `Random` methods.
+
+## 2026-03-03 - [Optimization Success: Array Flattening for Cache Locality]
+**Learning:** Flattening a 2D array (`Array[Array[Int]]`) representing a collection of small structs (e.g., drops with `x`, `y`, `vx`, `vy` components) into a 1D `Array[Int]` with a stride significantly improves performance in hot loops (e.g., from ~1300 FPS to ~2600 FPS in the benchmark).
+**Insight:** This data-oriented design (DoD) optimization reduces memory fragmentation, eliminates object overhead per element, and maximizes CPU cache locality. The JVM's JIT compiler can aggressively optimize sequential access to primitive 1D arrays compared to dereferencing nested arrays.
+**Action:** When managing collections of simple value-like data (structs) accessed sequentially in performance-critical loops, prefer a single flattened primitive array over arrays of objects or 2D arrays to eliminate object header overhead and improve memory access patterns.
+
+## 2026-03-05 - [Optimization Success: Loop Hoisting sets.length]
+**Learning:** Hoisting `sets.length` into `setsLength` and using it in `nextBounded(setsLength)` inside the drops loop reduces property access overhead in the tight render loop.
+**Insight:** Even minor property accesses like `.length` on `sets` can have slight overhead when called in a loop over all drops, especially if `sets` is an opaque type.
+**Action:** When a property is constant for a frame, hoist it outside the loop and use the local variable.

@@ -7,7 +7,7 @@ import java.util.concurrent.TimeUnit
 
 class MainBenchmark {
 
-  @Test // Uncomment to run benchmark manually
+  @Test
   def benchmarkRunLoop(): Unit = {
     // Create a virtual terminal with a fixed size
     val terminal = new DefaultVirtualTerminal(new TerminalSize(120, 40))
@@ -16,7 +16,7 @@ class MainBenchmark {
     // frameInterval = 0 means unthrottled execution
     val options = Options(
       scenes = Seq("rain"),
-      maxFrames = 500,
+      maxFrames = 2000,
       frameInterval = 0
     )
 
@@ -25,7 +25,7 @@ class MainBenchmark {
     val colorContext = ColorContext.resolve(options.fadeColor)
 
     // Warmup
-    val warmupOptions = options.copy(maxFrames = 10)
+    val warmupOptions = options.copy(maxFrames = 500)
     Main.runLoop(warmupOptions, terminal, sets, colorContext)
 
     // Measure
@@ -36,6 +36,7 @@ class MainBenchmark {
     val durationMs = TimeUnit.NANOSECONDS.toMillis(end - start)
     val fps = if (durationMs > 0) (options.maxFrames * 1000.0) / durationMs else 0
 
-    println(s"Benchmark Result: ${durationMs} ms for ${options.maxFrames} frames (~$fps FPS)")
+    println(s"===== Benchmark Result: ${durationMs} ms for ${options.maxFrames} frames (~$fps FPS) =====")
+    System.out.flush()
   }
 }
