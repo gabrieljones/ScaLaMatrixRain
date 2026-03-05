@@ -32,3 +32,8 @@
 **Learning:** Flattening a 2D array (`Array[Array[Int]]`) representing a collection of small structs (e.g., drops with `x`, `y`, `vx`, `vy` components) into a 1D `Array[Int]` with a stride significantly improves performance in hot loops (e.g., from ~1300 FPS to ~2600 FPS in the benchmark).
 **Insight:** This data-oriented design (DoD) optimization reduces memory fragmentation, eliminates object overhead per element, and maximizes CPU cache locality. The JVM's JIT compiler can aggressively optimize sequential access to primitive 1D arrays compared to dereferencing nested arrays.
 **Action:** When managing collections of simple value-like data (structs) accessed sequentially in performance-critical loops, prefer a single flattened primitive array over arrays of objects or 2D arrays to eliminate object header overhead and improve memory access patterns.
+
+## 2026-03-05 - [Optimization Success: Loop Hoisting sets.length]
+**Learning:** Hoisting `sets.length` into `setsLength` and using it in `nextBounded(setsLength)` inside the drops loop reduces property access overhead in the tight render loop.
+**Insight:** Even minor property accesses like `.length` on `sets` can have slight overhead when called in a loop over all drops, especially if `sets` is an opaque type.
+**Action:** When a property is constant for a frame, hoist it outside the loop and use the local variable.
