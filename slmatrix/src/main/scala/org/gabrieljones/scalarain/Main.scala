@@ -186,37 +186,37 @@ object Main extends CaseApp[Options] {
     // Use Int to store index into 'sets', instead of Char
     var charIndexBuffer = Array.ofDim[Int](frameContext.rows, frameContext.cols)
 
-    def updateChar(x: Int, y: Int, charIndex: Int, state: Int): Unit = {
-      if (x >= 0 && x < frameContext.cols && y >= 0 && y < frameContext.rows) {
+    inline def updateChar(x: Int, y: Int, charIndex: Int, state: Int, cols: Int, rows: Int): Unit = {
+      if (x >= 0 && x < cols && y >= 0 && y < rows) {
         val c = charCache(state)(charIndex)
         rainGraphics.setCharacter(x, y, c)
 
         colorBuffer(y)(x) = state
-        if (state >= 0) {
-           charIndexBuffer(y)(x) = charIndex
-        }
+        charIndexBuffer(y)(x) = charIndex
       }
     }
 
     val acceleration: Physics.Acceleration = Physics.Acceleration.fromName(options.physics)
 
     val dropQuantity = (dropQuantityFactor * frameContext.cols).toInt
-    // Optimization: Flatten the drops array from Array[Array[Int]] to a single Array[Int]
-    // where each drop takes up 4 consecutive slots (x, y, vx, vy). This improves cache locality.
-    val dropsFlattened: Array[Int] = {
-      val arr = new Array[Int](dropQuantity * 4)
-      given rng: ThreadLocalRandom = ThreadLocalRandom.current()
-      var i = 0
-      while (i < dropQuantity) {
-        val startPos = acceleration.startPosition
-        val startVec = acceleration.startVector
-        arr(i * 4) = startPos.x
-        arr(i * 4 + 1) = startPos.y
-        arr(i * 4 + 2) = startVec.x
-        arr(i * 4 + 3) = startVec.y
-        i += 1
-      }
-      arr
+    // Optimization: Parallel arrays for x, y, vx, vy instead of interleaved 1D array.
+    // This allows the CPU to prefetch consecutive elements of the same property
+    // efficiently without strided access (jumping over other fields).
+    val dropsX = new Array[Int](dropQuantity)
+    val dropsY = new Array[Int](dropQuantity)
+    val dropsVX = new Array[Int](dropQuantity)
+    val dropsVY = new Array[Int](dropQuantity)
+
+    given rngDropsInit: ThreadLocalRandom = ThreadLocalRandom.current()
+    var initDropsI = 0
+    while (initDropsI < dropQuantity) {
+      val startPos = acceleration.startPosition(using frameContext, rngDropsInit)
+      val startVec = acceleration.startVector(using frameContext, rngDropsInit)
+      dropsX(initDropsI) = startPos.x
+      dropsY(initDropsI) = startPos.y
+      dropsVX(initDropsI) = startVec.x
+      dropsVY(initDropsI) = startVec.y
+      initDropsI += 1
     }
     val testPatternOnFn = (t: Terminal, input: KeyStroke) => {
       if (input != null) {
@@ -228,7 +228,7 @@ object Main extends CaseApp[Options] {
       testPatternGraphics.putString(2, 2, ts.toString)
       testPatternGraphics.putString(2, 3, bu.toString)
       testPatternGraphics.putString(2, 4, frameCounter.toString)
-      val testPatternDrop0 = s"${dropsFlattened(0)},${dropsFlattened(1)},${dropsFlattened(2)},${dropsFlattened(3)}"
+      val testPatternDrop0 = if (dropQuantity > 0) s"${dropsX(0)},${dropsY(0)},${dropsVX(0)},${dropsVY(0)}" else "0,0,0,0"
       testPatternGraphics.putString(2, 5, testPatternDrop0)
       testPatternGraphics.putString(2, 6, lastInput.get().toString)
       testPatternGraphics.putString(2, 7, mousePosition.toString)
@@ -298,7 +298,6 @@ object Main extends CaseApp[Options] {
         (seed >>> 57).toInt
       }
 
-      var fx = 0
       var fy = 0
       val fadeThreshold = (fadeProbability * 128) / 100
       val glitchThreshold = (glitchProbability * 128) / 100
@@ -309,11 +308,14 @@ object Main extends CaseApp[Options] {
       while (fy < rows) {
         val colorRow = colorBuffer(fy)
         val charIndexRow = charIndexBuffer(fy)
+        var fx = 0
         while (fx < cols) {
-          // Optimization: Reuse random bits to reduce entropy generation overhead
-          if (next7Bits() < fadeThreshold) {
-            val state = colorRow(fx)
-            if (state >= 0) {
+          val state = colorRow(fx)
+          // Optimization: Checking state before generating entropy prevents
+          // wasted calls to next7Bits() and branch overhead for empty spots.
+          if (state >= 0) {
+            // Optimization: Reuse random bits to reduce entropy generation overhead
+            if (next7Bits() < fadeThreshold) {
               // Optimization: Reuse bit buffer instead of expensive RNG call
               val glitch = next7Bits() < glitchThreshold
               val nextState = if (glitch) state else fadeTable(state)
@@ -336,58 +338,57 @@ object Main extends CaseApp[Options] {
           }
           fx += 1
         }
-        fx = 0
         fy += 1
       }
 
       var dI = 0
-      val dropsLength = dropsFlattened.length
-      while (dI < dropsLength) {
-        val pXC = dropsFlattened(dI)
-        val pYC = dropsFlattened(dI + 1)
-        val vX = dropsFlattened(dI + 2)
-        val vY = dropsFlattened(dI + 3)
+      while (dI < dropQuantity) {
+        val pXC = dropsX(dI)
+        val pYC = dropsY(dI)
+        val vX = dropsVX(dI)
+        val vY = dropsVY(dI)
         // Optimization: Generate index once to lookup both char and precomputed trail character
         val charIndex = nextBounded(setsLength)
+
+        var pXN = pXC
+        var pYN = pYC
 
         {//advance drops
           if (vX != 0 && frameCounter % vX == 0) {
             val dir = if (vX > 0) 1 else -1
-            dropsFlattened(dI) += dir //pX
+            pXN += dir
+            dropsX(dI) = pXN
           }
           if (vY != 0 && frameCounter % vY == 0) {
             val dir = if (vY > 0) 1 else -1
-            dropsFlattened(dI + 1) += dir //pY
+            pYN += dir
+            dropsY(dI) = pYN
           }
         }
         {//paint drop new at next position
-          val pXN = dropsFlattened(dI)
-          val pYN = dropsFlattened(dI + 1)
-          updateChar(pXN, pYN, charIndex, 0)
+          updateChar(pXN, pYN, charIndex, 0, cols, rows)
         }
         {//paint drop faded first step at current position
-          val pXN = dropsFlattened(dI)
-          val pYN = dropsFlattened(dI + 1)
           if (pXN != pXC || pYN != pYC) {
-            updateChar(pXC, pYC, charIndex, 1)
+            updateChar(pXC, pYC, charIndex, 1, cols, rows)
           }
         }
         {
           val vec = acceleration.apply(vX, vY, pXC, pYC)
-          dropsFlattened(dI + 2) = vec.x
-          dropsFlattened(dI + 3) = vec.y
+          dropsVX(dI) = vec.x
+          dropsVY(dI) = vec.y
         }
         {//if drop is off-screen then replace with new drop
-          if (acceleration.outOfBounds(dropsFlattened(dI), dropsFlattened(dI + 1))) {
+          if (acceleration.outOfBounds(pXN, pYN)) {
             val newPos = acceleration.newPosition(mousePosition.getColumn, mousePosition.getRow)
             val newVec = acceleration.startVector
-            dropsFlattened(dI) = newPos.x
-            dropsFlattened(dI + 1) = newPos.y
-            dropsFlattened(dI + 2) = newVec.x
-            dropsFlattened(dI + 3) = newVec.y
+            dropsX(dI) = newPos.x
+            dropsY(dI) = newPos.y
+            dropsVX(dI) = newVec.x
+            dropsVY(dI) = newVec.y
           }
         }
-        dI += 4
+        dI += 1
       }
       testPatternFn(terminal, input)
       flush()
