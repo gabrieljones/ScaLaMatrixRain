@@ -37,3 +37,8 @@
 **Learning:** Hoisting `sets.length` into `setsLength` and using it in `nextBounded(setsLength)` inside the drops loop reduces property access overhead in the tight render loop.
 **Insight:** Even minor property accesses like `.length` on `sets` can have slight overhead when called in a loop over all drops, especially if `sets` is an opaque type.
 **Action:** When a property is constant for a frame, hoist it outside the loop and use the local variable.
+
+## 2026-03-05 - [Optimization Success: Complete Flattening of Screen Buffers]
+**Learning:** In Scala code targeting JVM, flattening the `colorBuffer` and `charIndexBuffer` from `Array[Array[Int]]` to a 1D `Array[Int]` yields significant performance improvements. While it adds a bit of math to calculate 2D coordinates back from the 1D index `val fx = idx % cols` and `val fy = idx / cols` inside the loop, the improvement in CPU cache locality for the massive sequential scan of the screen buffer outweighs the computation overhead.
+**Insight:** A previous attempt to flatten `charCache` from `Array[Array]` to `Array` degraded performance. However, for the `colorBuffer` and `charIndexBuffer` which are iterated over completely linearly on every frame to simulate fading/glitching, a 1D structure avoids repeated dereferencing and bounds checking of the inner arrays, improving FPS from ~2594 to ~2976 (+15%).
+**Action:** Always prefer 1D primitive arrays for screen buffers or large grid structures that are processed sequentially, and just do the row/col math.
