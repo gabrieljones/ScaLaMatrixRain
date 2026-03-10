@@ -34,13 +34,13 @@ Other options:
 Install [SDKMAN!](https://sdkman.io/)
 
 ```shell
-sdk install java 23.0.1-graalce
+sdk install java 25.0.2-graalce
 ```
 
 ### Compile
 
 ```shell
-sdk use java 23.0.1-graalce
+sdk use java 25.0.2-graalce
 ./gradlew nativeCompile --no-configuration-cache
 ```
 
