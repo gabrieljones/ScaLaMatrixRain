@@ -110,6 +110,7 @@ class PhysicsTest {
   @Test
   def testGravityOutOfBounds(): Unit = {
     given frameContext: FrameContext = new TestFrameContext(100, 100)
+    given rng: ThreadLocalRandom = ThreadLocalRandom.current()
     val gravity = Gravity()
     // centerX = 50, centerY = 50
 
@@ -342,15 +343,24 @@ class PhysicsTest {
   @Test
   def testFireOutOfBounds(): Unit = {
     given frameContext: FrameContext = new TestFrameContext(100, 100)
+    given rng: ThreadLocalRandom = ThreadLocalRandom.current()
     val fire = Acceleration.Fire
 
     assertTrue(fire.outOfBounds(50, -1)) // above top
     assertTrue(fire.outOfBounds(-1, 50)) // left
     assertTrue(fire.outOfBounds(100, 50)) // right
 
-    assertFalse(fire.outOfBounds(50, 50)) // middle
-    assertFalse(fire.outOfBounds(0, 0))   // top-left edge
-    assertFalse(fire.outOfBounds(99, 99)) // bottom-right edge
+    var middleFalse = false
+    var topLeftFalse = false
+    var bottomRightFalse = false
+    for (_ <- 0 until 100) {
+      if (!fire.outOfBounds(50, 50)) middleFalse = true
+      if (!fire.outOfBounds(0, 0)) topLeftFalse = true
+      if (!fire.outOfBounds(99, 99)) bottomRightFalse = true
+    }
+    assertTrue(middleFalse, "Middle should return false at least once")
+    assertTrue(topLeftFalse, "Top-left edge should return false at least once")
+    assertTrue(bottomRightFalse, "Bottom-right edge should return false at least once")
   }
 
   @Test
