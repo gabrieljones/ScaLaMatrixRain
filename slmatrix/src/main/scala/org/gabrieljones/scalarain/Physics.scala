@@ -19,7 +19,7 @@ object Physics {
     def startVector(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2
     def startPosition(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2
     def newPosition(mouseX: Int, mouseY: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2
-    def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext): Boolean
+    def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Boolean
   }
 
   object Acceleration {
@@ -52,7 +52,7 @@ object Physics {
 
       override def newPosition(mouseX: Int, mouseY: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = Vector2(rng.nextInt(frameContext.w), 0)
 
-      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext): Boolean = {
+      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Boolean = {
         val centerX = frameContext.w / 2
         val centerY = frameContext.h / 2
         math.abs(x - centerX) < 2 && math.abs(y - centerY) < 2
@@ -79,7 +79,7 @@ object Physics {
 
       override def newPosition(mouseX: Int, mouseY: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = Vector2(rng.nextInt(frameContext.w), 0)
 
-      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext): Boolean = y > frameContext.h
+      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Boolean = y > frameContext.h
     }
 
     case class GravityCenter(strength: Int) extends Acceleration {
@@ -107,7 +107,7 @@ object Physics {
 
       override def newPosition(mouseX: Int, mouseY: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = startPosition
 
-      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext): Boolean = {
+      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Boolean = {
         val centerX = frameContext.w / 2
         val centerY = frameContext.h / 2
         math.abs(x - centerX) < 2 && math.abs(y - centerY) < 2
@@ -123,7 +123,7 @@ object Physics {
 
       override def newPosition(mouseX: Int, mouseY: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = startPosition
 
-      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext): Boolean = {
+      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Boolean = {
         x < 0 || y < 0 || x > frameContext.w - 4 || y > frameContext.h - 2
       }
     }
@@ -151,7 +151,7 @@ object Physics {
 
       override def newPosition(mouseX: Int, mouseY: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Vector2 = edgeOfScreen
 
-      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext): Boolean = {
+      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Boolean = {
         val centerX = frameContext.w / 2
         val centerY = frameContext.h / 2
         val maxRadius = Math.max(centerX, centerY)
@@ -180,7 +180,7 @@ object Physics {
         Vector2(rng.nextInt(frameContext.w), 0)
       }
 
-      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext): Boolean = {
+      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Boolean = {
         x < 0 || x >= frameContext.w || y >= frameContext.h
       }
     }
@@ -218,7 +218,7 @@ object Physics {
         startPosition
       }
 
-      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext): Boolean = false
+      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Boolean = false
     }
 
     case object Snow extends Acceleration {
@@ -246,7 +246,7 @@ object Physics {
         Vector2(rng.nextInt(frameContext.w), 0)
       }
 
-      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext): Boolean = {
+      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Boolean = {
          y >= frameContext.h || x >= (frameContext.w + frameContext.h) || x <= (0 - frameContext.h)
       }
     }
@@ -274,8 +274,8 @@ object Physics {
         Vector2(rng.nextInt(frameContext.w), frameContext.h)
       }
 
-      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext): Boolean = {
-        y < 0 || x < 0 || x >= frameContext.w
+      override def outOfBounds(x: Int, y: Int)(using frameContext: FrameContext, rng: ThreadLocalRandom): Boolean = {
+        y < 0 || x < 0 || x >= frameContext.w || rng.nextInt(32) == 0 //random chance to disappear even if not out of bounds
       }
     }
 
