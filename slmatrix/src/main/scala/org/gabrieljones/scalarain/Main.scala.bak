@@ -181,21 +181,19 @@ object Main extends CaseApp[Options] {
 
     given frameContext: FrameContext = new FrameContext(terminal, sets.maxDisplayWidth())
     // Optimization: Use primitive arrays for color state (int) and character INDEX (int)
-    // Flattened 2D array to 1D array to improve cache locality and avoid multi-dimensional array lookup overhead
     // -1 represents empty/default state
-    var colorBuffer = Array.fill(frameContext.rows * frameContext.cols)(-1)
+    var colorBuffer = Array.fill(frameContext.rows, frameContext.cols)(-1)
     // Use Int to store index into 'sets', instead of Char
-    var charIndexBuffer = new Array[Int](frameContext.rows * frameContext.cols)
+    var charIndexBuffer = Array.ofDim[Int](frameContext.rows, frameContext.cols)
 
-    def updateChar(x: Int, y: Int, charIndex: Int, state: Int, rows: Int, cols: Int): Unit = {
-      if (x >= 0 && x < cols && y >= 0 && y < rows) {
+    def updateChar(x: Int, y: Int, charIndex: Int, state: Int): Unit = {
+      if (x >= 0 && x < frameContext.cols && y >= 0 && y < frameContext.rows) {
         val c = charCache(state)(charIndex)
         rainGraphics.setCharacter(x, y, c)
 
-        val idx = y * cols + x
-        colorBuffer(idx) = state
+        colorBuffer(y)(x) = state
         if (state >= 0) {
-           charIndexBuffer(idx) = charIndex
+           charIndexBuffer(y)(x) = charIndex
         }
       }
     }
@@ -275,8 +273,8 @@ object Main extends CaseApp[Options] {
         val oldRows = frameContext.rows
         frameContext.update(terminal)
         if (frameContext.cols != oldCols || frameContext.rows != oldRows) {
-          colorBuffer = Array.fill(frameContext.rows * frameContext.cols)(-1)
-          charIndexBuffer = new Array[Int](frameContext.rows * frameContext.cols)
+          colorBuffer = Array.fill(frameContext.rows, frameContext.cols)(-1)
+          charIndexBuffer = Array.ofDim[Int](frameContext.rows, frameContext.cols)
         }
       }
 
@@ -300,41 +298,46 @@ object Main extends CaseApp[Options] {
         (seed >>> 57).toInt
       }
 
+      var fx = 0
+      var fy = 0
       val fadeThreshold = (fadeProbability * 128) / 100
       val glitchThreshold = (glitchProbability * 128) / 100
       val rows = frameContext.rows
       val cols = frameContext.cols
       val setsLength = sets.length
 
-      var idx = 0
-      val maxIdx = rows * cols
-      while (idx < maxIdx) {
-        if (next7Bits() < fadeThreshold) {
-          val state = colorBuffer(idx)
-          if (state >= 0) {
-            val glitch = next7Bits() < glitchThreshold
-            val nextState = if (glitch) state else fadeTable(state)
+      while (fy < rows) {
+        val colorRow = colorBuffer(fy)
+        val charIndexRow = charIndexBuffer(fy)
+        while (fx < cols) {
+          // Optimization: Reuse random bits to reduce entropy generation overhead
+          if (next7Bits() < fadeThreshold) {
+            val state = colorRow(fx)
+            if (state >= 0) {
+              // Optimization: Reuse bit buffer instead of expensive RNG call
+              val glitch = next7Bits() < glitchThreshold
+              val nextState = if (glitch) state else fadeTable(state)
 
-            val fy = idx / cols
-            val fx = idx % cols
+              if (nextState >= 0) {
+                val charIndex = charIndexRow(fx)
+                val newCharIndex = if (glitch) nextBounded(setsLength) else charIndex
 
-            if (nextState >= 0) {
-              val charIndex = charIndexBuffer(idx)
-              val newCharIndex = if (glitch) nextBounded(setsLength) else charIndex
+                // Lookup precomputed character
+                val charNew = charCache(nextState)(newCharIndex)
+                rainGraphics.setCharacter(fx, fy, charNew)
 
-              // Lookup precomputed character
-              val charNew = charCache(nextState)(newCharIndex)
-              rainGraphics.setCharacter(fx, fy, charNew)
-
-              colorBuffer(idx) = nextState
-              if (glitch) charIndexBuffer(idx) = newCharIndex
-            } else {
-              rainGraphics.setCharacter(fx, fy, TextCharacter.DEFAULT_CHARACTER)
-              colorBuffer(idx) = -1
+                colorRow(fx) = nextState
+                if (glitch) charIndexRow(fx) = newCharIndex
+              } else {
+                rainGraphics.setCharacter(fx, fy, TextCharacter.DEFAULT_CHARACTER)
+                colorRow(fx) = -1
+              }
             }
           }
+          fx += 1
         }
-        idx += 1
+        fx = 0
+        fy += 1
       }
 
       var dI = 0
@@ -360,13 +363,13 @@ object Main extends CaseApp[Options] {
         {//paint drop new at next position
           val pXN = dropsFlattened(dI)
           val pYN = dropsFlattened(dI + 1)
-          updateChar(pXN, pYN, charIndex, 0, rows, cols)
+          updateChar(pXN, pYN, charIndex, 0)
         }
         {//paint drop faded first step at current position
           val pXN = dropsFlattened(dI)
           val pYN = dropsFlattened(dI + 1)
           if (pXN != pXC || pYN != pYC) {
-            updateChar(pXC, pYC, charIndex, 1, rows, cols)
+            updateChar(pXC, pYC, charIndex, 1)
           }
         }
         {
