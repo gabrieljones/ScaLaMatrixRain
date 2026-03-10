@@ -310,10 +310,11 @@ object Main extends CaseApp[Options] {
         val colorRow = colorBuffer(fy)
         val charIndexRow = charIndexBuffer(fy)
         while (fx < cols) {
-          // Optimization: Reuse random bits to reduce entropy generation overhead
-          if (next7Bits() < fadeThreshold) {
-            val state = colorRow(fx)
-            if (state >= 0) {
+          val state = colorRow(fx)
+          // Optimization: Read state array first before generating random bits.
+          // Since the matrix is mostly empty, skipping RNG for empty cells saves significant CPU cycles.
+          if (state >= 0) {
+            if (next7Bits() < fadeThreshold) {
               // Optimization: Reuse bit buffer instead of expensive RNG call
               val glitch = next7Bits() < glitchThreshold
               val nextState = if (glitch) state else fadeTable(state)
