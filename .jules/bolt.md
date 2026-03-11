@@ -41,3 +41,7 @@
 ## 2026-03-05 - [Optimization Success: Fast Path for Empty Matrix Cells]
 **Learning:** In the `Main.scala` render loop, computing random numbers (`next7Bits()`) for every cell before checking if the cell is populated (`state >= 0`) wastes significant CPU cycles. Since the matrix is mostly empty, skipping RNG logic for empty cells increases FPS by ~15%.
 **Action:** When iterating over a sparse matrix or grid, always check the state/population condition *before* executing expensive probability or transformation logic.
+
+## 2026-03-05 - [Optimization Success: Avoid Modulo for Unit Velocity]
+**Learning:** In the drop advancement loop of `Main.scala`, computing `frameCounter % vX == 0` when `vX` is frequently 1 or -1 incurs an unnecessary division operation. Adding a fast path for `vX == 1 || vX == -1` bypasses the modulo entirely, improving benchmark FPS from ~2805 to ~3072 (almost a 10% gain).
+**Action:** In highly repetitive loops, explicitly check for and fast-path operations involving modulo 1 or -1, as they are logically trivial but computationally expensive if evaluated via ALU division.
