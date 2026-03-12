@@ -110,6 +110,7 @@ class PhysicsTest {
   @Test
   def testGravityOutOfBounds(): Unit = {
     given frameContext: FrameContext = new TestFrameContext(100, 100)
+    given rng: ThreadLocalRandom = ThreadLocalRandom.current()
     val gravity = Gravity()
     // centerX = 50, centerY = 50
 
@@ -342,6 +343,7 @@ class PhysicsTest {
   @Test
   def testFireOutOfBounds(): Unit = {
     given frameContext: FrameContext = new TestFrameContext(100, 100)
+    given rng: ThreadLocalRandom = ThreadLocalRandom.current()
     val fire = Acceleration.Fire
 
     assertTrue(fire.outOfBounds(50, -1)) // above top

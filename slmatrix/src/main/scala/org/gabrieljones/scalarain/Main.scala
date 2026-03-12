@@ -352,13 +352,18 @@ object Main extends CaseApp[Options] {
         val charIndex = nextBounded(setsLength)
 
         {//advance drops
-          if (vX != 0 && frameCounter % vX == 0) {
-            val dir = if (vX > 0) 1 else -1
-            dropsFlattened(dI) += dir //pX
+          // Optimization: Avoid expensive modulo division when velocity is 1 or -1.
+          // In tight loops, bypassing the division ALU operation for common velocities (1, -1)
+          // improves throughput.
+          if (vX != 0) {
+            if (vX == 1) dropsFlattened(dI) += 1
+            else if (vX == -1) dropsFlattened(dI) -= 1
+            else if (frameCounter % vX == 0) dropsFlattened(dI) += (if (vX > 0) 1 else -1)
           }
-          if (vY != 0 && frameCounter % vY == 0) {
-            val dir = if (vY > 0) 1 else -1
-            dropsFlattened(dI + 1) += dir //pY
+          if (vY != 0) {
+            if (vY == 1) dropsFlattened(dI + 1) += 1
+            else if (vY == -1) dropsFlattened(dI + 1) -= 1
+            else if (frameCounter % vY == 0) dropsFlattened(dI + 1) += (if (vY > 0) 1 else -1)
           }
         }
         {//paint drop new at next position
