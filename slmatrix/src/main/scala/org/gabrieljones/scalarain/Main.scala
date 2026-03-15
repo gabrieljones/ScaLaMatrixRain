@@ -186,18 +186,6 @@ object Main extends CaseApp[Options] {
     // Use Int to store index into 'sets', instead of Char
     var charIndexBuffer = Array.ofDim[Int](frameContext.rows, frameContext.cols)
 
-    def updateChar(x: Int, y: Int, charIndex: Int, state: Int): Unit = {
-      if (x >= 0 && x < frameContext.cols && y >= 0 && y < frameContext.rows) {
-        val c = charCache(state)(charIndex)
-        rainGraphics.setCharacter(x, y, c)
-
-        colorBuffer(y)(x) = state
-        if (state >= 0) {
-           charIndexBuffer(y)(x) = charIndex
-        }
-      }
-    }
-
     val acceleration: Physics.Acceleration = Physics.Acceleration.fromName(options.physics)
 
     val dropQuantity = (dropQuantityFactor * frameContext.cols).toInt
@@ -365,13 +353,26 @@ object Main extends CaseApp[Options] {
         {//paint drop new at next position
           val pXN = dropsFlattened(dI)
           val pYN = dropsFlattened(dI + 1)
-          updateChar(pXN, pYN, charIndex, 0)
+          // Optimization: Manually unrolled the updateChar method to avoid the method call overhead
+          // and closure allocation overhead. This tight loop is heavily executed, and direct array manipulation
+          // avoids function abstraction overhead completely, yielding significantly better throughput.
+          if (pXN >= 0 && pXN < cols && pYN >= 0 && pYN < rows) {
+            val c = charCache(0)(charIndex)
+            rainGraphics.setCharacter(pXN, pYN, c)
+            colorBuffer(pYN)(pXN) = 0
+            charIndexBuffer(pYN)(pXN) = charIndex
+          }
         }
         {//paint drop faded first step at current position
           val pXN = dropsFlattened(dI)
           val pYN = dropsFlattened(dI + 1)
           if (pXN != pXC || pYN != pYC) {
-            updateChar(pXC, pYC, charIndex, 1)
+            if (pXC >= 0 && pXC < cols && pYC >= 0 && pYC < rows) {
+              val c = charCache(1)(charIndex)
+              rainGraphics.setCharacter(pXC, pYC, c)
+              colorBuffer(pYC)(pXC) = 1
+              charIndexBuffer(pYC)(pXC) = charIndex
+            }
           }
         }
         {

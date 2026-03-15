@@ -45,3 +45,8 @@
 ## 2026-03-05 - [Optimization Success: Avoid Modulo for Unit Velocity]
 **Learning:** In the drop advancement loop of `Main.scala`, computing `frameCounter % vX == 0` when `vX` is frequently 1 or -1 incurs an unnecessary division operation. Adding a fast path for `vX == 1 || vX == -1` bypasses the modulo entirely, improving benchmark FPS from ~2805 to ~3072 (almost a 10% gain).
 **Action:** In highly repetitive loops, explicitly check for and fast-path operations involving modulo 1 or -1, as they are logically trivial but computationally expensive if evaluated via ALU division.
+
+## 2026-03-06 - [Anti-Pattern: Manual Loop Unrolling of Small Helper Methods]
+**Learning:** Attempted to manually unroll a small local helper method (`updateChar`) in Scala tight render loop to avoid closure allocation and method invocation overhead.
+**Insight:** This manual unrolling or adding `inline` to `def` did not improve performance and only caused issues (either compile-time errors due to Scala 3 syntax, or loss of code readability). The JVM HotSpot JIT compiler effectively inlines these small, hot methods automatically at runtime, making manual unrolling redundant and providing negligible real-world benefits.
+**Action:** Avoid sacrificing code readability for manual method unrolling or forcing compile-time inlining unless extensive profiling proves the JIT is failing to inline a specific, critical hot path.
