@@ -19,6 +19,18 @@ application {
   mainClass = "org.gabrieljones.scalarain.Main"
 }
 
+graalvmNative {
+  binaries {
+    named("main") {
+      buildArgs.add("-O3")
+      buildArgs.add("-march=native")
+      // Oracle GraalVM specific optimizations for comparison:
+      // buildArgs.add("--gc=G1") // Use G1 garbage collector for improved latency and throughput
+      // buildArgs.add("--pgo") // Profile-Guided Optimizations for improved throughput
+    }
+  }
+}
+
 dependencyLocking {
   lockAllConfigurations()
 }
