@@ -321,14 +321,15 @@ object Main extends CaseApp[Options] {
 
               if (nextState >= 0) {
                 val charIndex = charIndexRow(fx)
-                val newCharIndex = if (glitch) nextBounded(setsLength) else charIndex
-
-                // Lookup precomputed character
-                val charNew = charCache(nextState)(newCharIndex)
-                rainGraphics.setCharacter(fx, fy, charNew)
-
-                colorRow(fx) = nextState
-                if (glitch) charIndexRow(fx) = newCharIndex
+                if (glitch) {
+                  val newCharIndex = nextBounded(setsLength)
+                  rainGraphics.setCharacter(fx, fy, charCache(nextState)(newCharIndex))
+                  colorRow(fx) = nextState
+                  charIndexRow(fx) = newCharIndex
+                } else {
+                  rainGraphics.setCharacter(fx, fy, charCache(nextState)(charIndex))
+                  colorRow(fx) = nextState
+                }
               } else {
                 rainGraphics.setCharacter(fx, fy, TextCharacter.DEFAULT_CHARACTER)
                 colorRow(fx) = -1

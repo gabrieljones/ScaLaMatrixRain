@@ -45,3 +45,8 @@
 ## 2026-03-05 - [Optimization Success: Avoid Modulo for Unit Velocity]
 **Learning:** In the drop advancement loop of `Main.scala`, computing `frameCounter % vX == 0` when `vX` is frequently 1 or -1 incurs an unnecessary division operation. Adding a fast path for `vX == 1 || vX == -1` bypasses the modulo entirely, improving benchmark FPS from ~2805 to ~3072 (almost a 10% gain).
 **Action:** In highly repetitive loops, explicitly check for and fast-path operations involving modulo 1 or -1, as they are logically trivial but computationally expensive if evaluated via ALU division.
+
+## 2026-03-05 - [Optimization Success: Avoid unnecessary variable assignment and checks]
+**Learning:** In the tight render loop of `Main.scala`, branching based on the `glitch` boolean and fully duplicating the body instead of conditionally setting `newCharIndex` avoids an unnecessary local variable allocation and branching for the ~75% of iterations where `glitch` is false.
+**Insight:** Small micro-optimizations that eliminate even a single assignment operation can result in a measurable performance increase in extremely hot loops.
+**Action:** When working in performance critical sections, write the explicit full bodies instead of conditionally updating small values when one branch is taken far more often than another.
