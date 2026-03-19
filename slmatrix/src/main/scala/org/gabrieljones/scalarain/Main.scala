@@ -314,14 +314,18 @@ object Main extends CaseApp[Options] {
           // Optimization: Read state array first before generating random bits.
           // Since the matrix is mostly empty, skipping RNG for empty cells saves significant CPU cycles.
           if (state >= 0) {
-            if (next7Bits() < fadeThreshold) {
-              // Optimization: Reuse bit buffer instead of expensive RNG call
-              val glitch = next7Bits() < glitchThreshold
+            // Optimization: Generate 31 bits once and extract chunks to save LCG updates.
+            // Bits 0-6 (7 bits) for fade
+            // Bits 7-13 (7 bits) for glitch
+            // Bits 14-30 (17 bits) can be used for newCharIndex via Lemire multiplication
+            val r = next31Bits()
+            if ((r & 127) < fadeThreshold) {
+              val glitch = ((r >>> 7) & 127) < glitchThreshold
               val nextState = if (glitch) state else fadeTable(state)
 
               if (nextState >= 0) {
                 val charIndex = charIndexRow(fx)
-                val newCharIndex = if (glitch) nextBounded(setsLength) else charIndex
+                val newCharIndex = if (glitch) (((r >>> 14).toLong * setsLength.toLong) >>> 17).toInt else charIndex
 
                 // Lookup precomputed character
                 val charNew = charCache(nextState)(newCharIndex)

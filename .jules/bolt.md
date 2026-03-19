@@ -45,3 +45,7 @@
 ## 2026-03-05 - [Optimization Success: Avoid Modulo for Unit Velocity]
 **Learning:** In the drop advancement loop of `Main.scala`, computing `frameCounter % vX == 0` when `vX` is frequently 1 or -1 incurs an unnecessary division operation. Adding a fast path for `vX == 1 || vX == -1` bypasses the modulo entirely, improving benchmark FPS from ~2805 to ~3072 (almost a 10% gain).
 **Action:** In highly repetitive loops, explicitly check for and fast-path operations involving modulo 1 or -1, as they are logically trivial but computationally expensive if evaluated via ALU division.
+## 2026-03-05 - [Optimization Success: Random Bit Reuse in Inner Loop]
+**Learning:** In the tight inner loop of `Main.scala` (updating the fading/glitching drops), checking the fade probability, glitch probability, and selecting a new random character previously required up to three separate LCG updates (`next7Bits()`, `next7Bits()`, `nextBounded()`).
+**Insight:** We can generate a single 31-bit random number (`next31Bits()`) and slice it into multiple parts: 7 bits for fade probability, 7 bits for glitch probability, and 17 bits to multiply with the sets length to act as a bounded random integer. This saves up to 2 LCG state updates per filled pixel.
+**Action:** Extract chunks from a single random number generation in extremely hot loops if multiple small random values are needed.
