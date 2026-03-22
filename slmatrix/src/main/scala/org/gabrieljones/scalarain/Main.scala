@@ -351,25 +351,29 @@ object Main extends CaseApp[Options] {
         // Optimization: Generate index once to lookup both char and precomputed trail character
         val charIndex = nextBounded(setsLength)
 
+        var pXN = pXC
+        var pYN = pYC
+
         {//advance drops
           // Optimization: Pre-compute direction and avoid modulo when v == 1 or -1
           if (vX != 0) {
-             if (vX == 1 || vX == -1) dropsFlattened(dI) += vX
-             else if (frameCounter % vX == 0) dropsFlattened(dI) += (if (vX > 0) 1 else -1)
+             if (vX == 1 || vX == -1) pXN += vX
+             else if (frameCounter % vX == 0) pXN += (if (vX > 0) 1 else -1)
           }
           if (vY != 0) {
-             if (vY == 1 || vY == -1) dropsFlattened(dI + 1) += vY
-             else if (frameCounter % vY == 0) dropsFlattened(dI + 1) += (if (vY > 0) 1 else -1)
+             if (vY == 1 || vY == -1) pYN += vY
+             else if (frameCounter % vY == 0) pYN += (if (vY > 0) 1 else -1)
           }
         }
+
+        // Optimization: Write new positions back to array once
+        dropsFlattened(dI) = pXN
+        dropsFlattened(dI + 1) = pYN
+
         {//paint drop new at next position
-          val pXN = dropsFlattened(dI)
-          val pYN = dropsFlattened(dI + 1)
           updateChar(pXN, pYN, charIndex, 0)
         }
         {//paint drop faded first step at current position
-          val pXN = dropsFlattened(dI)
-          val pYN = dropsFlattened(dI + 1)
           if (pXN != pXC || pYN != pYC) {
             updateChar(pXC, pYC, charIndex, 1)
           }
@@ -380,7 +384,7 @@ object Main extends CaseApp[Options] {
           dropsFlattened(dI + 3) = vec.y
         }
         {//if drop is off-screen then replace with new drop
-          if (acceleration.outOfBounds(dropsFlattened(dI), dropsFlattened(dI + 1))) {
+          if (acceleration.outOfBounds(pXN, pYN)) {
             val newPos = acceleration.newPosition(mousePosition.getColumn, mousePosition.getRow)
             val newVec = acceleration.startVector
             dropsFlattened(dI) = newPos.x
