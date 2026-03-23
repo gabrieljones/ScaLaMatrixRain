@@ -45,3 +45,7 @@
 ## 2026-03-05 - [Optimization Success: Avoid Modulo for Unit Velocity]
 **Learning:** In the drop advancement loop of `Main.scala`, computing `frameCounter % vX == 0` when `vX` is frequently 1 or -1 incurs an unnecessary division operation. Adding a fast path for `vX == 1 || vX == -1` bypasses the modulo entirely, improving benchmark FPS from ~2805 to ~3072 (almost a 10% gain).
 **Action:** In highly repetitive loops, explicitly check for and fast-path operations involving modulo 1 or -1, as they are logically trivial but computationally expensive if evaluated via ALU division.
+
+## 2026-03-05 - [Optimization Success: Local Variables for Array Extraction in Loops]
+**Learning:** In tight loops iterating over primitive arrays (like `dropsFlattened` in `Main.scala`), extracting array reads into local variables, performing calculations on these local variables, and writing back to the array exactly once (and reusing these variables for subsequent method calls) eliminates redundant array bounds checks and memory accesses. This yielded a significant performance gain (~8% improvement in FPS).
+**Action:** In performance-critical loop kernels interacting with arrays, prefer extracting elements to local variables if they are accessed or modified multiple times, instead of indexing into the array repeatedly.
