@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+        // Optimization: Write new positions back to array once
+        dropsFlattened(dI) = pXN
+        dropsFlattened(dI + 1) = pYN
+
+        {//paint drop new at next position
+          updateChar(pXN, pYN, charIndex, 0)
+        }
+        {//paint drop faded first step at current position
+          if (pXN != pXC || pYN != pYC) {
+            updateChar(pXC, pYC, charIndex, 1)
+          }
+        }
+=======
+        // Optimization: Write new positions back to array once
+        dropsFlattened(dI) = pXN
+        dropsFlattened(dI + 1) = pYN
+
+        {//paint drop new at next position
+          if (pXN >= 0 && pXN < cols && pYN >= 0 && pYN < rows) {
+             val c = charCache(0)(charIndex)
+             rainGraphics.setCharacter(pXN, pYN, c)
+             colorBuffer(pYN)(pXN) = 0
+             charIndexBuffer(pYN)(pXN) = charIndex
+          }
+        }
+        {//paint drop faded first step at current position
+          if (pXN != pXC || pYN != pYC) {
+            if (pXC >= 0 && pXC < cols && pYC >= 0 && pYC < rows) {
+               val c = charCache(1)(charIndex)
+               rainGraphics.setCharacter(pXC, pYC, c)
+               colorBuffer(pYC)(pXC) = 1
+               charIndexBuffer(pYC)(pXC) = charIndex
+            }
+          }
+        }
+>>>>>>> REPLACE

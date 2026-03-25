@@ -352,9 +352,6 @@ object Main extends CaseApp[Options] {
         val pYC = dropsFlattened(dI + 1)
         val vX = dropsFlattened(dI + 2)
         val vY = dropsFlattened(dI + 3)
-        // Optimization: Generate index once to lookup both char and precomputed trail character
-        val charIndex = nextBounded(setsLength)
-
         var pXN = pXC
         var pYN = pYC
 
@@ -375,11 +372,16 @@ object Main extends CaseApp[Options] {
         dropsFlattened(dI + 1) = pYN
 
         {//paint drop new at next position
-          updateChar(pXN, pYN, charIndex, 0)
-        }
-        {//paint drop faded first step at current position
-          if (pXN != pXC || pYN != pYC) {
-            updateChar(pXC, pYC, charIndex, 1)
+          // Avoid expensive RNG call if the drop position hasn't changed (e.g. slow snow physics) or is out of bounds
+          if (pXN >= 0 && pXN < cols && pYN >= 0 && pYN < rows) {
+             val charIndex = nextBounded(setsLength)
+             updateChar(pXN, pYN, charIndex, 0)
+             if (pXN != pXC || pYN != pYC) {
+               updateChar(pXC, pYC, charIndex, 1)
+             }
+          } else if (pXN != pXC || pYN != pYC) {
+             val charIndex = nextBounded(setsLength)
+             updateChar(pXC, pYC, charIndex, 1)
           }
         }
         {
