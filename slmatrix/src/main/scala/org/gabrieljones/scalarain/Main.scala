@@ -352,9 +352,6 @@ object Main extends CaseApp[Options] {
         val pYC = dropsFlattened(dI + 1)
         val vX = dropsFlattened(dI + 2)
         val vY = dropsFlattened(dI + 3)
-        // Optimization: Generate index once to lookup both char and precomputed trail character
-        val charIndex = nextBounded(setsLength)
-
         var pXN = pXC
         var pYN = pYC
 
@@ -369,6 +366,10 @@ object Main extends CaseApp[Options] {
              else if (frameCounter % vY == 0) pYN += (if (vY > 0) 1 else -1)
           }
         }
+
+        // Optimization: Generate index once to lookup both char and precomputed trail character
+        // Only generate random number if drop has moved
+        val charIndex = if (pXC != pXN || pYC != pYN) nextBounded(setsLength) else 0
 
         // Optimization: Write new positions back to array once
         dropsFlattened(dI) = pXN
