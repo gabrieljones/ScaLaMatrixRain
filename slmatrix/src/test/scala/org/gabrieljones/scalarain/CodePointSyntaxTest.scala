@@ -27,7 +27,7 @@ class CodePointSyntaxTest {
   @Test
   def testSetsOfCodePointsMethods(): Unit = {
     val array = Array('A'.toInt, 'B'.toInt, 'C'.toInt, 0x3041)
-    val sets = array.asSetsOfCodePoints
+    val sets = array.asInstanceOf[SetsOfCodePoints]
 
     assertEquals('A'.toInt, sets.get(0))
     assertEquals('B'.toInt, sets.getAsInt(1))
@@ -47,7 +47,7 @@ class CodePointSyntaxTest {
   @Test
   def testRandomChar(): Unit = {
     val array = Array('A'.toInt, 'B'.toInt, 'C'.toInt)
-    val sets = array.asSetsOfCodePoints
+    val sets = array.asInstanceOf[SetsOfCodePoints]
     given rng: ThreadLocalRandom = ThreadLocalRandom.current()
 
     val random = sets.randomChar
@@ -57,11 +57,11 @@ class CodePointSyntaxTest {
   @Test
   def testAsSetsOfCodePoints(): Unit = {
     val array = Array(1, 2, 3)
-    val sets = array.asSetsOfCodePoints
+    val sets = array.asInstanceOf[SetsOfCodePoints]
     assertEquals(3, sets.length)
   }
 
   extension (i: Int) {
-    def asSetsOfCodePoints: SetsOfCodePoints = Array(i).asSetsOfCodePoints
+    def asSetsOfCodePoints: SetsOfCodePoints = Array(i).asInstanceOf[SetsOfCodePoints]
   }
 }
