@@ -10,18 +10,18 @@ class CodePointSyntaxTest {
   @Test
   def testGetDisplayWidth(): Unit = {
     // Zero-width characters
-    assertEquals(0, 0x0.asSetsOfCodePoints.get(0).getDisplayWidth)
-    assertEquals(0, 0x0300.asSetsOfCodePoints.get(0).getDisplayWidth) // Combining Grave Accent (NON_SPACING_MARK)
-    assertEquals(0, 0x200B.asSetsOfCodePoints.get(0).getDisplayWidth) // Zero Width Space
+    assertEquals(0, Array(0x0).asSetsOfCodePoints.get(0).getDisplayWidth)
+    assertEquals(0, Array(0x0300).asSetsOfCodePoints.get(0).getDisplayWidth) // Combining Grave Accent (NON_SPACING_MARK)
+    assertEquals(0, Array(0x200B).asSetsOfCodePoints.get(0).getDisplayWidth) // Zero Width Space
 
     // Wide characters
-    assertEquals(2, 0x3041.asSetsOfCodePoints.get(0).getDisplayWidth) // Hiragana Letter A
-    assertEquals(2, 0x1F600.asSetsOfCodePoints.get(0).getDisplayWidth) // Grinning Face Emoji
-    assertEquals(2, 0xFF01.asSetsOfCodePoints.get(0).getDisplayWidth) // Fullwidth Exclamation Mark
+    assertEquals(2, Array(0x3041).asSetsOfCodePoints.get(0).getDisplayWidth) // Hiragana Letter A
+    assertEquals(2, Array(0x1F600).asSetsOfCodePoints.get(0).getDisplayWidth) // Grinning Face Emoji
+    assertEquals(2, Array(0xFF01).asSetsOfCodePoints.get(0).getDisplayWidth) // Fullwidth Exclamation Mark
 
     // Standard width
-    assertEquals(1, 'A'.toInt.asSetsOfCodePoints.get(0).getDisplayWidth)
-    assertEquals(1, ' '.toInt.asSetsOfCodePoints.get(0).getDisplayWidth)
+    assertEquals(1, Array('A'.toInt).asSetsOfCodePoints.get(0).getDisplayWidth)
+    assertEquals(1, Array(' '.toInt).asSetsOfCodePoints.get(0).getDisplayWidth)
   }
 
   @Test
@@ -61,7 +61,4 @@ class CodePointSyntaxTest {
     assertEquals(3, sets.length)
   }
 
-  extension (i: Int) {
-    def asSetsOfCodePoints: SetsOfCodePoints = Array(i).asSetsOfCodePoints
-  }
 }

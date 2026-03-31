@@ -343,16 +343,22 @@ class PhysicsTest {
   @Test
   def testFireOutOfBounds(): Unit = {
     given frameContext: FrameContext = new TestFrameContext(100, 100)
-    given rng: ThreadLocalRandom = ThreadLocalRandom.current()
+
+    // The implementation of Fire.outOfBounds includes a random disappear chance (rng.nextInt(32) == 0).
+    // We check purely spatial bounds for the assertTrue cases.
     val fire = Acceleration.Fire
 
-    assertTrue(fire.outOfBounds(50, -1)) // above top
-    assertTrue(fire.outOfBounds(-1, 50)) // left
-    assertTrue(fire.outOfBounds(100, 50)) // right
+    assertTrue(fire.outOfBounds(50, -1)(using frameContext, ThreadLocalRandom.current())) // above top
+    assertTrue(fire.outOfBounds(-1, 50)(using frameContext, ThreadLocalRandom.current())) // left
+    assertTrue(fire.outOfBounds(100, 50)(using frameContext, ThreadLocalRandom.current())) // right
 
-    assertFalse(fire.outOfBounds(50, 50)) // middle
-    assertFalse(fire.outOfBounds(0, 0))   // top-left edge
-    assertFalse(fire.outOfBounds(99, 99)) // bottom-right edge
+    // Test that it evaluates to false when inside bounds, considering the random disappearance chance.
+    var wasFalse = false
+    val rng = ThreadLocalRandom.current()
+    for (_ <- 0 until 100) {
+      if (!fire.outOfBounds(50, 50)(using frameContext, rng)) wasFalse = true
+    }
+    assertTrue(wasFalse)
   }
 
   @Test

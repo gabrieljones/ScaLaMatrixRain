@@ -25,17 +25,26 @@ class MainBenchmark {
     val colorContext = ColorContext.resolve(options.fadeColor)
 
     // Warmup
-    val warmupOptions = options.copy(maxFrames = 500)
+    val warmupOptions = options.copy(maxFrames = 1000)
     Main.runLoop(warmupOptions, terminal, sets, colorContext)
 
     // Measure
-    val start = System.nanoTime()
+    var start = System.nanoTime()
     Main.runLoop(options, terminal, sets, colorContext)
-    val end = System.nanoTime()
+    var end = System.nanoTime()
 
-    val durationMs = TimeUnit.NANOSECONDS.toMillis(end - start)
-    val fps = if (durationMs > 0) (options.maxFrames * 1000.0) / durationMs else 0
+    val durationMs1 = TimeUnit.NANOSECONDS.toMillis(end - start)
+    val fps1 = if (durationMs1 > 0) (options.maxFrames * 1000.0) / durationMs1 else 0
 
-    println(s"Benchmark Result: ${durationMs} ms for ${options.maxFrames} frames (~$fps FPS)")
+    start = System.nanoTime()
+    Main.runLoop(options, terminal, sets, colorContext)
+    end = System.nanoTime()
+
+    val durationMs2 = TimeUnit.NANOSECONDS.toMillis(end - start)
+    val fps2 = if (durationMs2 > 0) (options.maxFrames * 1000.0) / durationMs2 else 0
+
+
+    println(s"Benchmark Result 1: ${durationMs1} ms for ${options.maxFrames} frames (~$fps1 FPS)")
+    println(s"Benchmark Result 2: ${durationMs2} ms for ${options.maxFrames} frames (~$fps2 FPS)")
   }
 }
