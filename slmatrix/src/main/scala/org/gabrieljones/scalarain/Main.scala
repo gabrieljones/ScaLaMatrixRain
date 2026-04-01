@@ -180,20 +180,21 @@ object Main extends CaseApp[Options] {
     var mousePosition = TerminalPosition(0,0)
 
     given frameContext: FrameContext = new FrameContext(terminal, sets.maxDisplayWidth())
-    // Optimization: Use primitive arrays for color state (int) and character INDEX (int)
+    // Optimization: Use flattened 1D primitive arrays for color state (int) and character INDEX (int)
     // -1 represents empty/default state
-    var colorBuffer = Array.fill(frameContext.rows, frameContext.cols)(-1)
+    var colorBuffer = Array.fill(frameContext.rows * frameContext.cols)(-1)
     // Use Int to store index into 'sets', instead of Char
-    var charIndexBuffer = Array.ofDim[Int](frameContext.rows, frameContext.cols)
+    var charIndexBuffer = new Array[Int](frameContext.rows * frameContext.cols)
 
     def updateChar(x: Int, y: Int, charIndex: Int, state: Int): Unit = {
       if (x >= 0 && x < frameContext.cols && y >= 0 && y < frameContext.rows) {
         val c = charCache(state)(charIndex)
         rainGraphics.setCharacter(x, y, c)
 
-        colorBuffer(y)(x) = state
+        val idx = y * frameContext.cols + x
+        colorBuffer(idx) = state
         if (state >= 0) {
-           charIndexBuffer(y)(x) = charIndex
+           charIndexBuffer(idx) = charIndex
         }
       }
     }
@@ -273,8 +274,8 @@ object Main extends CaseApp[Options] {
         val oldRows = frameContext.rows
         frameContext.update(terminal)
         if (frameContext.cols != oldCols || frameContext.rows != oldRows) {
-          colorBuffer = Array.fill(frameContext.rows, frameContext.cols)(-1)
-          charIndexBuffer = Array.ofDim[Int](frameContext.rows, frameContext.cols)
+          colorBuffer = Array.fill(frameContext.rows * frameContext.cols)(-1)
+          charIndexBuffer = new Array[Int](frameContext.rows * frameContext.cols)
         }
       }
 
@@ -306,11 +307,14 @@ object Main extends CaseApp[Options] {
       val cols = frameContext.cols
       val setsLength = sets.length
 
+      // Optimization: Flattened 2D array sequential iteration.
+      // Iterating through a single 1D array improves CPU cache locality and
+      // avoids the overhead of dereferencing sub-arrays.
+      var rowOffset = 0
       while (fy < rows) {
-        val colorRow = colorBuffer(fy)
-        val charIndexRow = charIndexBuffer(fy)
         while (fx < cols) {
-          val state = colorRow(fx)
+          val idx = rowOffset + fx
+          val state = colorBuffer(idx)
           // Optimization: Read state array first before generating random bits.
           // Since the matrix is mostly empty, skipping RNG for empty cells saves significant CPU cycles.
           if (state >= 0) {
@@ -324,18 +328,18 @@ object Main extends CaseApp[Options] {
               val nextState = if (glitch) state else fadeTable(state)
 
               if (nextState >= 0) {
-                val charIndex = charIndexRow(fx)
+                val charIndex = charIndexBuffer(idx)
                 val newCharIndex = if (glitch) (((r >>> 14).toLong * setsLength.toLong) >>> 17).toInt else charIndex
 
                 // Lookup precomputed character
                 val charNew = charCache(nextState)(newCharIndex)
                 rainGraphics.setCharacter(fx, fy, charNew)
 
-                colorRow(fx) = nextState
-                if (glitch) charIndexRow(fx) = newCharIndex
+                colorBuffer(idx) = nextState
+                if (glitch) charIndexBuffer(idx) = newCharIndex
               } else {
                 rainGraphics.setCharacter(fx, fy, TextCharacter.DEFAULT_CHARACTER)
-                colorRow(fx) = -1
+                colorBuffer(idx) = -1
               }
             }
           }
@@ -343,6 +347,7 @@ object Main extends CaseApp[Options] {
         }
         fx = 0
         fy += 1
+        rowOffset += cols
       }
 
       var dI = 0
