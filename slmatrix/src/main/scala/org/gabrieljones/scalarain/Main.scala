@@ -392,15 +392,16 @@ object Main extends CaseApp[Options] {
           dropsFlattened(dI + 2) = vec.x
           dropsFlattened(dI + 3) = vec.y
         }
-        {//if drop is off-screen then replace with new drop
-          if (acceleration.outOfBounds(pXN, pYN)) {
-            val newPos = acceleration.newPosition(mousePosition.getColumn, mousePosition.getRow)
-            val newVec = acceleration.startVector
-            dropsFlattened(dI) = newPos.x
-            dropsFlattened(dI + 1) = newPos.y
-            dropsFlattened(dI + 2) = newVec.x
-            dropsFlattened(dI + 3) = newVec.y
-          }
+
+        // Optimization: Only check out-of-bounds if the drop actually moved.
+        // Stationary drops can't suddenly go out of bounds without changing position.
+        if ((pXN != pXC || pYN != pYC) && acceleration.outOfBounds(pXN, pYN)) {
+          val newPos = acceleration.newPosition(mousePosition.getColumn, mousePosition.getRow)
+          val newVec = acceleration.startVector
+          dropsFlattened(dI) = newPos.x
+          dropsFlattened(dI + 1) = newPos.y
+          dropsFlattened(dI + 2) = newVec.x
+          dropsFlattened(dI + 3) = newVec.y
         }
         dI += 4
       }
