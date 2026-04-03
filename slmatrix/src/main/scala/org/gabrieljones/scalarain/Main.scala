@@ -307,47 +307,47 @@ object Main extends CaseApp[Options] {
       val cols = frameContext.cols
       val setsLength = sets.length
 
-      // Optimization: Flattened 2D array sequential iteration.
+      // Optimization: Flattened 1D array sequential iteration.
       // Iterating through a single 1D array improves CPU cache locality and
-      // avoids the overhead of dereferencing sub-arrays.
-      var rowOffset = 0
-      while (fy < rows) {
-        while (fx < cols) {
-          val idx = rowOffset + fx
-          val state = colorBuffer(idx)
-          // Optimization: Read state array first before generating random bits.
-          // Since the matrix is mostly empty, skipping RNG for empty cells saves significant CPU cycles.
-          if (state >= 0) {
-            // Optimization: Generate 31 bits once and extract chunks to save LCG updates.
-            // Bits 0-6 (7 bits) for fade
-            // Bits 7-13 (7 bits) for glitch
-            // Bits 14-30 (17 bits) can be used for newCharIndex via Lemire multiplication
-            val r = next31Bits()
-            if ((r & 127) < fadeThreshold) {
-              val glitch = ((r >>> 7) & 127) < glitchThreshold
-              val nextState = if (glitch) state else fadeTable(state)
+      // avoids the overhead of nested loops and calculating idx.
+      var idx = 0
+      val maxIdx = rows * cols
+      while (idx < maxIdx) {
+        val state = colorBuffer(idx)
+        // Optimization: Read state array first before generating random bits.
+        // Since the matrix is mostly empty, skipping RNG for empty cells saves significant CPU cycles.
+        if (state >= 0) {
+          // Optimization: Generate 31 bits once and extract chunks to save LCG updates.
+          // Bits 0-6 (7 bits) for fade
+          // Bits 7-13 (7 bits) for glitch
+          // Bits 14-30 (17 bits) can be used for newCharIndex via Lemire multiplication
+          val r = next31Bits()
+          if ((r & 127) < fadeThreshold) {
+            val glitch = ((r >>> 7) & 127) < glitchThreshold
+            val nextState = if (glitch) state else fadeTable(state)
 
-              if (nextState >= 0) {
-                val charIndex = charIndexBuffer(idx)
-                val newCharIndex = if (glitch) (((r >>> 14).toLong * setsLength.toLong) >>> 17).toInt else charIndex
+            if (nextState >= 0) {
+              val charIndex = charIndexBuffer(idx)
+              val newCharIndex = if (glitch) (((r >>> 14).toLong * setsLength.toLong) >>> 17).toInt else charIndex
 
-                // Lookup precomputed character
-                val charNew = charCache(nextState)(newCharIndex)
-                rainGraphics.setCharacter(fx, fy, charNew)
+              // Lookup precomputed character
+              val charNew = charCache(nextState)(newCharIndex)
+              rainGraphics.setCharacter(fx, fy, charNew)
 
-                colorBuffer(idx) = nextState
-                if (glitch) charIndexBuffer(idx) = newCharIndex
-              } else {
-                rainGraphics.setCharacter(fx, fy, TextCharacter.DEFAULT_CHARACTER)
-                colorBuffer(idx) = -1
-              }
+              colorBuffer(idx) = nextState
+              if (glitch) charIndexBuffer(idx) = newCharIndex
+            } else {
+              rainGraphics.setCharacter(fx, fy, TextCharacter.DEFAULT_CHARACTER)
+              colorBuffer(idx) = -1
             }
           }
-          fx += 1
         }
-        fx = 0
-        fy += 1
-        rowOffset += cols
+        fx += 1
+        if (fx == cols) {
+          fx = 0
+          fy += 1
+        }
+        idx += 1
       }
 
       var dI = 0
@@ -366,11 +366,13 @@ object Main extends CaseApp[Options] {
         {//advance drops
           // Optimization: Pre-compute direction and avoid modulo when v == 1 or -1
           if (vX != 0) {
-             if (vX == 1 || vX == -1) pXN += vX
+             if (vX == 1) pXN += 1
+             else if (vX == -1) pXN -= 1
              else if (frameCounter % vX == 0) pXN += (if (vX > 0) 1 else -1)
           }
           if (vY != 0) {
-             if (vY == 1 || vY == -1) pYN += vY
+             if (vY == 1) pYN += 1
+             else if (vY == -1) pYN -= 1
              else if (frameCounter % vY == 0) pYN += (if (vY > 0) 1 else -1)
           }
         }
