@@ -141,8 +141,8 @@ object Main extends CaseApp[Options] {
     import colorContext._
 
     // Optimization: Precompute faded white color and TextCharacters to avoid repeated allocations and lookups
-    // Cache dimensions: [State][CharIndex]
-    val charCache = Array.ofDim[TextCharacter](maxState + 1, sets.length)
+    // Cache dimensions: [State * sets.length + CharIndex]
+    val charCache = new Array[TextCharacter]((maxState + 1) * sets.length)
 
     // Initialize cache
     for (state <- 0 to maxState) {
@@ -153,9 +153,9 @@ object Main extends CaseApp[Options] {
        for (i <- 0 until sets.length) {
           val char = sets.getAsInt(i).toChar
           if (isHead) {
-             charCache(state)(i) = new TextCharacter(char, color, TextColor.ANSI.DEFAULT, SGR.BOLD)
+             charCache(state * sets.length + i) = new TextCharacter(char, color, TextColor.ANSI.DEFAULT, SGR.BOLD)
           } else {
-             charCache(state)(i) = new TextCharacter(char, color, TextColor.ANSI.DEFAULT)
+             charCache(state * sets.length + i) = new TextCharacter(char, color, TextColor.ANSI.DEFAULT)
           }
        }
     }
@@ -188,7 +188,7 @@ object Main extends CaseApp[Options] {
 
     def updateChar(x: Int, y: Int, charIndex: Int, state: Int): Unit = {
       if (x >= 0 && x < frameContext.cols && y >= 0 && y < frameContext.rows) {
-        val c = charCache(state)(charIndex)
+        val c = charCache(state * sets.length + charIndex)
         rainGraphics.setCharacter(x, y, c)
 
         val idx = y * frameContext.cols + x
@@ -310,10 +310,13 @@ object Main extends CaseApp[Options] {
       // Optimization: Flattened 2D array sequential iteration.
       // Iterating through a single 1D array improves CPU cache locality and
       // avoids the overhead of dereferencing sub-arrays.
-      var rowOffset = 0
-      while (fy < rows) {
-        while (fx < cols) {
-          val idx = rowOffset + fx
+      // Optimization: When iterating a full grid stored sequentially in a 1D array
+      // (like colorBuffer), use a single flat loop with a flat index (idx from 0 to width * height)
+      // rather than nested x and y loops with a hoisted rowOffset. This simplifies control flow
+      // and slightly improves cache locality in hot render loops.
+      val totalCells = rows * cols
+      var idx = 0
+      while (idx < totalCells) {
           val state = colorBuffer(idx)
           // Optimization: Read state array first before generating random bits.
           // Since the matrix is mostly empty, skipping RNG for empty cells saves significant CPU cycles.
@@ -332,7 +335,7 @@ object Main extends CaseApp[Options] {
                 val newCharIndex = if (glitch) (((r >>> 14).toLong * setsLength.toLong) >>> 17).toInt else charIndex
 
                 // Lookup precomputed character
-                val charNew = charCache(nextState)(newCharIndex)
+                val charNew = charCache(nextState * setsLength + newCharIndex)
                 rainGraphics.setCharacter(fx, fy, charNew)
 
                 colorBuffer(idx) = nextState
@@ -343,11 +346,12 @@ object Main extends CaseApp[Options] {
               }
             }
           }
+          idx += 1
           fx += 1
-        }
-        fx = 0
-        fy += 1
-        rowOffset += cols
+          if (fx == cols) {
+            fx = 0
+            fy += 1
+          }
       }
 
       var dI = 0
