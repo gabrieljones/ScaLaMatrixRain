@@ -299,8 +299,6 @@ object Main extends CaseApp[Options] {
         (seed >>> 57).toInt
       }
 
-      var fx = 0
-      var fy = 0
       val fadeThreshold = (fadeProbability * 128) / 100
       val glitchThreshold = (glitchProbability * 128) / 100
       val rows = frameContext.rows
@@ -308,46 +306,44 @@ object Main extends CaseApp[Options] {
       val setsLength = sets.length
 
       // Optimization: Flattened 2D array sequential iteration.
-      // Iterating through a single 1D array improves CPU cache locality and
-      // avoids the overhead of dereferencing sub-arrays.
-      var rowOffset = 0
-      while (fy < rows) {
-        while (fx < cols) {
-          val idx = rowOffset + fx
-          val state = colorBuffer(idx)
-          // Optimization: Read state array first before generating random bits.
-          // Since the matrix is mostly empty, skipping RNG for empty cells saves significant CPU cycles.
-          if (state >= 0) {
-            // Optimization: Generate 31 bits once and extract chunks to save LCG updates.
-            // Bits 0-6 (7 bits) for fade
-            // Bits 7-13 (7 bits) for glitch
-            // Bits 14-30 (17 bits) can be used for newCharIndex via Lemire multiplication
-            val r = next31Bits()
-            if ((r & 127) < fadeThreshold) {
-              val glitch = ((r >>> 7) & 127) < glitchThreshold
-              val nextState = if (glitch) state else fadeTable(state)
+      // Iterating through a single 1D array sequentially improves CPU cache locality.
+      // Iterating using a single flat loop from 0 to rows * cols simplifies control flow.
+      val bufferLength = rows * cols
+      var idx = 0
+      while (idx < bufferLength) {
+        val state = colorBuffer(idx)
+        // Optimization: Read state array first before generating random bits.
+        // Since the matrix is mostly empty, skipping RNG for empty cells saves significant CPU cycles.
+        if (state >= 0) {
+          // Optimization: Generate 31 bits once and extract chunks to save LCG updates.
+          // Bits 0-6 (7 bits) for fade
+          // Bits 7-13 (7 bits) for glitch
+          // Bits 14-30 (17 bits) can be used for newCharIndex via Lemire multiplication
+          val r = next31Bits()
+          if ((r & 127) < fadeThreshold) {
+            val glitch = ((r >>> 7) & 127) < glitchThreshold
+            val nextState = if (glitch) state else fadeTable(state)
 
-              if (nextState >= 0) {
-                val charIndex = charIndexBuffer(idx)
-                val newCharIndex = if (glitch) (((r >>> 14).toLong * setsLength.toLong) >>> 17).toInt else charIndex
+            val px = idx % cols
+            val py = idx / cols
 
-                // Lookup precomputed character
-                val charNew = charCache(nextState)(newCharIndex)
-                rainGraphics.setCharacter(fx, fy, charNew)
+            if (nextState >= 0) {
+              val charIndex = charIndexBuffer(idx)
+              val newCharIndex = if (glitch) (((r >>> 14).toLong * setsLength.toLong) >>> 17).toInt else charIndex
 
-                colorBuffer(idx) = nextState
-                if (glitch) charIndexBuffer(idx) = newCharIndex
-              } else {
-                rainGraphics.setCharacter(fx, fy, TextCharacter.DEFAULT_CHARACTER)
-                colorBuffer(idx) = -1
-              }
+              // Lookup precomputed character
+              val charNew = charCache(nextState)(newCharIndex)
+              rainGraphics.setCharacter(px, py, charNew)
+
+              colorBuffer(idx) = nextState
+              if (glitch) charIndexBuffer(idx) = newCharIndex
+            } else {
+              rainGraphics.setCharacter(px, py, TextCharacter.DEFAULT_CHARACTER)
+              colorBuffer(idx) = -1
             }
           }
-          fx += 1
         }
-        fx = 0
-        fy += 1
-        rowOffset += cols
+        idx += 1
       }
 
       var dI = 0
@@ -357,9 +353,6 @@ object Main extends CaseApp[Options] {
         val pYC = dropsFlattened(dI + 1)
         val vX = dropsFlattened(dI + 2)
         val vY = dropsFlattened(dI + 3)
-        // Optimization: Generate index once to lookup both char and precomputed trail character
-        val charIndex = nextBounded(setsLength)
-
         var pXN = pXC
         var pYN = pYC
 
@@ -379,11 +372,22 @@ object Main extends CaseApp[Options] {
         dropsFlattened(dI) = pXN
         dropsFlattened(dI + 1) = pYN
 
+        val moved = pXN != pXC || pYN != pYC
+
+        // Optimization: Only generate random character index if the drop actually moved
+        // If not moved, retrieve the existing character from the buffer to avoid flicker and RNG overhead.
+        // We know that if it didn't move, and it's on screen, its index is valid.
+        val charIndex = if (moved) {
+           nextBounded(setsLength)
+        } else {
+           if (pXN >= 0 && pXN < cols && pYN >= 0 && pYN < rows) charIndexBuffer(pYN * cols + pXN) else 0
+        }
+
         {//paint drop new at next position
           updateChar(pXN, pYN, charIndex, 0)
         }
         {//paint drop faded first step at current position
-          if (pXN != pXC || pYN != pYC) {
+          if (moved) {
             updateChar(pXC, pYC, charIndex, 1)
           }
         }

@@ -59,3 +59,13 @@
 **Learning:** Flattening 2D state arrays (`Array.fill(rows, cols)(-1)`) into 1D primitive arrays (`Array.fill(rows * cols)(-1)`) and iterating sequentially using a calculated index (`idx = rowOffset + fx`) avoids object dereferencing overhead and significantly improves CPU cache locality in hot render loops, yielding a ~5% increase in FPS (e.g., ~2684 FPS to ~2820 FPS).
 **Insight:** The JVM's JIT compiler optimizes sequential access to large 1D primitive arrays much more effectively than accessing arrays of arrays, as 2D arrays in Java are fundamentally arrays of object references. Memory layout matters greatly in tight rendering loops.
 **Action:** When working with grid-based state in critical paths, prefer a single flattened 1D primitive array over an `Array.ofDim` or `Array[Array]`. Iterate with a hoisted `rowOffset` to avoid repeated multiplication per element.
+
+## 2026-03-24 - [Optimization Success: Loop flattening in grid iteration]
+**Learning:** In the `Main.scala` render loop, iterating over a flattened 1D array representing a 2D grid (`colorBuffer`) using a single flat loop (`idx` from `0` to `rows * cols`) is slightly faster than using nested `fx` and `fy` loops with a hoisted `rowOffset`. The benchmark FPS increased from ~2574 to ~2645.
+**Insight:** Simplifying control flow by using a single loop variable reduces the number of loop conditions and variable updates, which allows the JIT compiler to optimize the loop more effectively. Calculating `px = idx % cols` and `py = idx / cols` only when a populated cell is found (which is rare since the grid is mostly empty) shifts the cost out of the main iteration path.
+**Action:** When iterating over a sparse grid represented as a 1D array, use a single loop with a flat index and calculate 2D coordinates only when necessary.
+
+## 2026-03-24 - [Optimization Success: Skipping redundant character selection for stationary drops]
+**Learning:** In the `Main.scala` drops advancement loop, drops with velocities > 1 are artificially slowed down using modulo logic (`frameCounter % v == 0`). In frames where a drop doesn't actually move, generating a new random character index (`charIndex`) via `nextBounded(setsLength)` causes unnecessary RNG overhead. By evaluating whether the drop's position has changed (`val moved = pXN != pXC || pYN != pYC`) and only invoking `nextBounded` if `moved` is true, benchmark FPS increased from ~2645 to ~2785.
+**Insight:** Bypassing RNG calls by reusing existing state when logical state hasn't changed is a highly effective optimization in hot loops.
+**Action:** When working with simulated physics or delayed updates in render loops, conditionally bypass random property generation if the entity hasn't logically updated its position/state.
