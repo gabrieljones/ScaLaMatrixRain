@@ -186,12 +186,14 @@ object Main extends CaseApp[Options] {
     // Use Int to store index into 'sets', instead of Char
     var charIndexBuffer = new Array[Int](frameContext.rows * frameContext.cols)
 
-    def updateChar(x: Int, y: Int, charIndex: Int, state: Int): Unit = {
-      if (x >= 0 && x < frameContext.cols && y >= 0 && y < frameContext.rows) {
+    // Optimization: Inline updateChar logic for better performance.
+    // JVM may inline small methods, but explicit inlining avoids any call overhead in the hot inner loop.
+    inline def updateChar(x: Int, y: Int, charIndex: Int, state: Int, cols: Int, rows: Int): Unit = {
+      if (x >= 0 && x < cols && y >= 0 && y < rows) {
         val c = charCache(state)(charIndex)
         rainGraphics.setCharacter(x, y, c)
 
-        val idx = y * frameContext.cols + x
+        val idx = y * cols + x
         colorBuffer(idx) = state
         if (state >= 0) {
            charIndexBuffer(idx) = charIndex
@@ -380,11 +382,12 @@ object Main extends CaseApp[Options] {
         dropsFlattened(dI + 1) = pYN
 
         {//paint drop new at next position
-          updateChar(pXN, pYN, charIndex, 0)
+          updateChar(pXN, pYN, charIndex, 0, cols, rows)
         }
         {//paint drop faded first step at current position
+          // Optimization: Only update the current cell if the drop has actually moved
           if (pXN != pXC || pYN != pYC) {
-            updateChar(pXC, pYC, charIndex, 1)
+            updateChar(pXC, pYC, charIndex, 1, cols, rows)
           }
         }
         {
