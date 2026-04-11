@@ -268,6 +268,7 @@ object Main extends CaseApp[Options] {
         }
       }
       val input = ti
+      val inputReceived = input != null
       terminal.checkExit(input)
 
       // Optimization: Only update terminal size every 10 frames
@@ -410,6 +411,11 @@ object Main extends CaseApp[Options] {
       testPatternFn(terminal, input)
       flush()
       frameCounter += 1
+
+      // Optimization: Yield thread when unthrottled and no input received to reduce CPU utilization
+      if (!inputReceived && options.frameInterval <= 0) {
+        Thread.`yield`()
+      }
     }
 
     val shutdownHook = new Thread(() => {
