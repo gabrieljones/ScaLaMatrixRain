@@ -331,7 +331,11 @@ object Main extends CaseApp[Options] {
 
               if (nextState >= 0) {
                 val charIndex = charIndexBuffer(idx)
-                val newCharIndex = if (glitch) (((r >>> 14).toLong * setsLength.toLong) >>> 17).toInt else charIndex
+                // Optimization: Avoid redundant 64-bit Long casts and multiplications in tight loop.
+                // 31-bit random 'r' shifted right by 14 is at most 131,071. Multiplied by setsLength (e.g. 50-100)
+                // is ~13,000,000, which safely fits within a 32-bit signed Integer (2,147,483,647).
+                // Thus, the calculation can be performed strictly with 32-bit integer math.
+                val newCharIndex = if (glitch) (((r >>> 14) * setsLength) >>> 17) else charIndex
 
                 // Lookup precomputed character
                 val charNew = charCache(nextState)(newCharIndex)
