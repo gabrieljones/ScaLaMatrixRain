@@ -359,8 +359,6 @@ object Main extends CaseApp[Options] {
         val pYC = dropsFlattened(dI + 1)
         val vX = dropsFlattened(dI + 2)
         val vY = dropsFlattened(dI + 3)
-        // Optimization: Generate index once to lookup both char and precomputed trail character
-        val charIndex = nextBounded(setsLength)
 
         var pXN = pXC
         var pYN = pYC
@@ -381,13 +379,16 @@ object Main extends CaseApp[Options] {
         dropsFlattened(dI) = pXN
         dropsFlattened(dI + 1) = pYN
 
-        {//paint drop new at next position
+        // Optimization: Only update the current cell and generate a character if the drop has actually moved
+        if (pXN != pXC || pYN != pYC) {
+          val charIndex = nextBounded(setsLength)
           updateChar(pXN, pYN, charIndex, 0, cols, rows)
-        }
-        {//paint drop faded first step at current position
-          // Optimization: Only update the current cell if the drop has actually moved
-          if (pXN != pXC || pYN != pYC) {
-            updateChar(pXC, pYC, charIndex, 1, cols, rows)
+          updateChar(pXC, pYC, charIndex, 1, cols, rows)
+        } else {
+          // Stationary sub-frame drop: just preserve its state 0 to prevent fading without rendering overhead
+          if (pXC >= 0 && pXC < cols && pYC >= 0 && pYC < rows) {
+            val idx = pYC * cols + pXC
+            colorBuffer(idx) = 0
           }
         }
         {
