@@ -253,8 +253,11 @@ object Main extends CaseApp[Options] {
     val testPatternOffFn = (t: Terminal, input: KeyStroke) => {}
     val testPatternFn: (Terminal, KeyStroke) => Unit = if (options.testPattern) testPatternOnFn else testPatternOffFn
 
+    var inputReceived = false
     val frameFn: Runnable = () => {
+      inputReceived = false
       var tiD: KeyStroke = terminal.pollInput()
+      if (tiD != null) inputReceived = true
       var ti = tiD
       var draining = true
       while (draining) {
@@ -262,6 +265,7 @@ object Main extends CaseApp[Options] {
           case ma: MouseAction if ma.isMouseMove || ma.isMouseDrag => //drain
             mousePosition = ma.getPosition
             tiD = terminal.pollInput()
+            if (tiD != null) inputReceived = true
           case _ =>
             ti = tiD
             draining = false
@@ -426,6 +430,9 @@ object Main extends CaseApp[Options] {
         try {
           while (options.maxFrames <= 0 || frameCounter < options.maxFrames) {
             frameFn.run()
+            if (!inputReceived) {
+              Thread.yield()
+            }
           }
         } catch {
           case e: Exception => e.printStackTrace()
