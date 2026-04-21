@@ -359,8 +359,6 @@ object Main extends CaseApp[Options] {
         val pYC = dropsFlattened(dI + 1)
         val vX = dropsFlattened(dI + 2)
         val vY = dropsFlattened(dI + 3)
-        // Optimization: Generate index once to lookup both char and precomputed trail character
-        val charIndex = nextBounded(setsLength)
 
         var pXN = pXC
         var pYN = pYC
@@ -381,15 +379,27 @@ object Main extends CaseApp[Options] {
         dropsFlattened(dI) = pXN
         dropsFlattened(dI + 1) = pYN
 
-        {//paint drop new at next position
+        // Optimization: Defer random generation and terminal UI redraws
+        // until we confirm the drop actually moved.
+        if (pXN != pXC || pYN != pYC) {
+          val charIndex = nextBounded(setsLength)
+          // paint drop new at next position
           updateChar(pXN, pYN, charIndex, 0, cols, rows)
-        }
-        {//paint drop faded first step at current position
-          // Optimization: Only update the current cell if the drop has actually moved
-          if (pXN != pXC || pYN != pYC) {
-            updateChar(pXC, pYC, charIndex, 1, cols, rows)
+          // paint drop faded first step at current position
+          updateChar(pXC, pYC, charIndex, 1, cols, rows)
+        } else {
+          // Optimization: For stationary sub-frame drops, preserve the visual state
+          // by setting the colorBuffer back to 0 directly to prevent fading
+          // without full rendering overhead.
+          // Note: pXN and pYN are integer coordinates so direct array access is safe.
+          if (pXN >= 0 && pXN < cols && pYN >= 0 && pYN < rows) {
+            val idx = pYN * cols + pXN
+            colorBuffer(idx) = 0
+            // Also preserve the existing character index so it doesn't flicker unnecessarily
+            // when it isn't moving.
           }
         }
+
         {
           val vec = acceleration.apply(vX, vY, pXC, pYC)
           dropsFlattened(dI + 2) = vec.x
