@@ -64,3 +64,8 @@
 **Learning:** Transforming a heavily used, local helper method (`updateChar`) within the tight `runLoop` from a standard method (which implicitly captures loop variables) into an `inline def` and explicitly passing hoisted local variables (like `cols` and `rows`) slightly improves peak throughput (e.g., from ~2950 FPS to ~3050 FPS).
 **Insight:** While the JVM's JIT compiler is generally excellent at inlining small methods, using Scala 3's `inline` keyword forces compile-time expansion. This guarantees the removal of method invocation overhead and closure allocation/variable capture costs, which can be critical for fast-path rendering logic executed thousands of times per frame. It also allows the JIT to better optimize the resulting flattened bytecode block.
 **Action:** In performance-critical inner loops, favor explicitly passing necessary primitive arguments to `inline def` helper methods over relying on implicit closure capture and JIT inlining.
+
+## 2026-04-16 - [Optimization Success: Defer Character Generation for Stationary Drops]
+**Learning:** In the drop movement loop of `Main.scala`, random characters were being generated and terminal updates (`updateChar`) were being performed even when a drop had a velocity < 1 (e.g. `frameCounter % v == 0` fast path) and hadn't moved (`pXN == pXC && pYN == pYC`). By deferring the `charIndex` generation and only redrawing when the drop actually moves, we preserve the visual state via `colorBuffer` to prevent fading without unnecessary RNG or rendering overhead.
+**Impact:** FPS increased from ~2700 FPS to ~3200 FPS (+18% improvement).
+**Action:** When working with simulated entities that move at sub-frame velocities, defer state generation and rendering logic until spatial movement is confirmed.
