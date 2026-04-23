@@ -331,7 +331,9 @@ object Main extends CaseApp[Options] {
 
               if (nextState >= 0) {
                 val charIndex = charIndexBuffer(idx)
-                val newCharIndex = if (glitch) (((r >>> 14).toLong * setsLength.toLong) >>> 17).toInt else charIndex
+                // Optimization: Avoid 64-bit toLong/toInt conversion overhead for bounded random generation in hot loop.
+                // r >>> 14 is max 131071. If setsLength <= 16384, product is <= 2.14B (fits in 32-bit Int).
+                val newCharIndex = if (glitch) (((r >>> 14) * setsLength) >>> 17) else charIndex
 
                 // Lookup precomputed character
                 val charNew = charCache(nextState)(newCharIndex)
