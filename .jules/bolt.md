@@ -64,3 +64,7 @@
 **Learning:** Transforming a heavily used, local helper method (`updateChar`) within the tight `runLoop` from a standard method (which implicitly captures loop variables) into an `inline def` and explicitly passing hoisted local variables (like `cols` and `rows`) slightly improves peak throughput (e.g., from ~2950 FPS to ~3050 FPS).
 **Insight:** While the JVM's JIT compiler is generally excellent at inlining small methods, using Scala 3's `inline` keyword forces compile-time expansion. This guarantees the removal of method invocation overhead and closure allocation/variable capture costs, which can be critical for fast-path rendering logic executed thousands of times per frame. It also allows the JIT to better optimize the resulting flattened bytecode block.
 **Action:** In performance-critical inner loops, favor explicitly passing necessary primitive arguments to `inline def` helper methods over relying on implicit closure capture and JIT inlining.
+
+## 2024-04-11 - [Optimization Success: Yield in Unthrottled Loop]
+**Learning:** Running an unthrottled render loop (`frameInterval <= 0`) can peg the CPU at 100% because the thread never yields back to the OS scheduler. By introducing ``Thread.`yield`()`` at the end of the frame when no input is processed (`!inputReceived`), we significantly reduce unnecessary CPU utilization while maintaining high perceived throughput.
+**Action:** In unthrottled rendering loops without blocking I/O, yield the thread to the OS scheduler when no active input processing is required to prevent CPU pegging.
