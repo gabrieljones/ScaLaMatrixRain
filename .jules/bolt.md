@@ -64,3 +64,13 @@
 **Learning:** Transforming a heavily used, local helper method (`updateChar`) within the tight `runLoop` from a standard method (which implicitly captures loop variables) into an `inline def` and explicitly passing hoisted local variables (like `cols` and `rows`) slightly improves peak throughput (e.g., from ~2950 FPS to ~3050 FPS).
 **Insight:** While the JVM's JIT compiler is generally excellent at inlining small methods, using Scala 3's `inline` keyword forces compile-time expansion. This guarantees the removal of method invocation overhead and closure allocation/variable capture costs, which can be critical for fast-path rendering logic executed thousands of times per frame. It also allows the JIT to better optimize the resulting flattened bytecode block.
 **Action:** In performance-critical inner loops, favor explicitly passing necessary primitive arguments to `inline def` helper methods over relying on implicit closure capture and JIT inlining.
+
+## 2026-03-24 - [Optimization Success: Avoid redundant array writes]
+**Learning:** In the drop advancement loop of `Main.scala`, waiting until a drop's processing is fully completed (including out-of-bounds recreation) to write `dropsFlattened(dI) = pXN` back to the array is faster than writing it immediately and potentially rewriting it if the drop triggers `outOfBounds`.
+**Insight:** Avoiding double writes to an array within an iteration improves performance, particularly in very hot inner loops processing thousands of items.
+**Action:** Always attempt to consolidate reads/writes to arrays or fields. If multiple code paths within a block eventually calculate a new value for a memory location, structure the block to write to that location exactly once at the end.
+
+## 2026-03-24 - [Optimization Success: Flatten 2D Object Array to 1D]
+**Learning:** Flattening the 2D Object array `val charCache = Array.ofDim[TextCharacter](maxState + 1, sets.length)` into a 1D array `val charCache = new Array[TextCharacter]((maxState + 1) * setsLengthVal)` and accessing it linearly via `charCache(state * setsLengthVal + charIndex)` yielded a massive FPS boost (from ~2800 to ~4100 in benchmarks).
+**Insight:** Java 2D arrays are actually arrays of object references pointing to other arrays. Looking up `cache[A][B]` requires two memory dereferences. Flattening this structure into a single contiguous array and doing pointer math guarantees a single dereference, which dramatically improves CPU cache hits when doing this thousands of times per frame.
+**Action:** When working with 2D matrices/caches of Objects in performance critical sections, heavily prefer a flat 1D array with calculated strides.

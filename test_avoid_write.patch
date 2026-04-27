@@ -1,0 +1,16 @@
+--- slmatrix/src/main/scala/org/gabrieljones/scalarain/Main.scala
++++ slmatrix/src/main/scala/org/gabrieljones/scalarain/Main.scala
+@@ -337,8 +337,10 @@
+                 val charNew = charCache(nextState)(newCharIndex)
+                 rainGraphics.setCharacter(fx, fy, charNew)
+
+-                colorBuffer(idx) = nextState
+-                if (glitch) charIndexBuffer(idx) = newCharIndex
++                if (glitch) {
++                  charIndexBuffer(idx) = newCharIndex
++                } else {
++                  colorBuffer(idx) = nextState
++                }
+               } else {
+                 rainGraphics.setCharacter(fx, fy, TextCharacter.DEFAULT_CHARACTER)
+                 colorBuffer(idx) = -1

@@ -1,0 +1,42 @@
+--- slmatrix/src/main/scala/org/gabrieljones/scalarain/Main.scala
++++ slmatrix/src/main/scala/org/gabrieljones/scalarain/Main.scala
+@@ -355,8 +355,8 @@
+       var dI = 0
+       val dropsLength = dropsFlattened.length
+       while (dI < dropsLength) {
+-        val pXC = dropsFlattened(dI)
+-        val pYC = dropsFlattened(dI + 1)
++        var pXC = dropsFlattened(dI)
++        var pYC = dropsFlattened(dI + 1)
+         val vX = dropsFlattened(dI + 2)
+         val vY = dropsFlattened(dI + 3)
+         // Optimization: Generate index once to lookup both char and precomputed trail character
+@@ -377,10 +377,6 @@
+           }
+         }
+
+-        // Optimization: Write new positions back to array once
+-        dropsFlattened(dI) = pXN
+-        dropsFlattened(dI + 1) = pYN
+-
+         {//paint drop new at next position
+           updateChar(pXN, pYN, charIndex, 0, cols, rows)
+         }
+@@ -398,8 +394,8 @@
+           if (acceleration.outOfBounds(pXN, pYN)) {
+             val newPos = acceleration.newPosition(mousePosition.getColumn, mousePosition.getRow)
+             val newVec = acceleration.startVector
+-            dropsFlattened(dI) = newPos.x
+-            dropsFlattened(dI + 1) = newPos.y
++            pXN = newPos.x
++            pYN = newPos.y
+             dropsFlattened(dI + 2) = newVec.x
+             dropsFlattened(dI + 3) = newVec.y
+           }
+         }
++
++        dropsFlattened(dI) = pXN
++        dropsFlattened(dI + 1) = pYN
++
+         dI += 4
+       }

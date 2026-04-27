@@ -1,0 +1,13 @@
+--- slmatrix/src/main/scala/org/gabrieljones/scalarain/Main.scala
++++ slmatrix/src/main/scala/org/gabrieljones/scalarain/Main.scala
+@@ -327,9 +327,9 @@
+             val r = next31Bits()
+             if ((r & 127) < fadeThreshold) {
+               val glitch = ((r >>> 7) & 127) < glitchThreshold
+-              val nextState = if (glitch) state else fadeTable(state)
++              val nextState = if (glitch) state else state + 1
+
+-              if (nextState >= 0) {
++              if (nextState <= maxState) {
+                 val charIndex = charIndexBuffer(idx)
+                 val newCharIndex = if (glitch) (((r >>> 14).toLong * setsLength.toLong) >>> 17).toInt else charIndex

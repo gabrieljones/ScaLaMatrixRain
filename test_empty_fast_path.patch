@@ -1,0 +1,34 @@
+--- slmatrix/src/main/scala/org/gabrieljones/scalarain/Main.scala
++++ slmatrix/src/main/scala/org/gabrieljones/scalarain/Main.scala
+@@ -319,20 +319,20 @@
+           val state = colorBuffer(idx)
+           // Optimization: Read state array first before generating random bits.
+           // Since the matrix is mostly empty, skipping RNG for empty cells saves significant CPU cycles.
+           if (state >= 0) {
+             // Optimization: Generate 31 bits once and extract chunks to save LCG updates.
+             // Bits 0-6 (7 bits) for fade
+             // Bits 7-13 (7 bits) for glitch
+             // Bits 14-30 (17 bits) can be used for newCharIndex via Lemire multiplication
+             val r = next31Bits()
+             if ((r & 127) < fadeThreshold) {
+               val glitch = ((r >>> 7) & 127) < glitchThreshold
+-              val nextState = if (glitch) state else fadeTable(state)
++              val nextState = if (glitch) state else state + 1
+
+-              if (nextState >= 0) {
++              if (nextState <= maxState) {
+                 val charIndex = charIndexBuffer(idx)
+                 val newCharIndex = if (glitch) (((r >>> 14).toLong * setsLength.toLong) >>> 17).toInt else charIndex
+
+                 // Lookup precomputed character
+                 val charNew = charCache(nextState)(newCharIndex)
+                 rainGraphics.setCharacter(fx, fy, charNew)
+
+                 colorBuffer(idx) = nextState
+                 if (glitch) charIndexBuffer(idx) = newCharIndex
+               } else {
+                 rainGraphics.setCharacter(fx, fy, TextCharacter.DEFAULT_CHARACTER)
+                 colorBuffer(idx) = -1
+               }
+             }
+           }
