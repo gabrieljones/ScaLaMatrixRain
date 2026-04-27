@@ -1,0 +1,18 @@
+--- slmatrix/src/main/scala/org/gabrieljones/scalarain/Main.scala
++++ slmatrix/src/main/scala/org/gabrieljones/scalarain/Main.scala
+@@ -355,6 +355,7 @@
+       var dI = 0
+       val dropsLength = dropsFlattened.length
+       while (dI < dropsLength) {
++      /*
+         val pXC = dropsFlattened(dI)
+         val pYC = dropsFlattened(dI + 1)
+         val vX = dropsFlattened(dI + 2)
+@@ -406,6 +407,7 @@
+             dropsFlattened(dI + 3) = newVec.y
+           }
+         }
++        */
+         dI += 4
+       }
+       testPatternFn(terminal, input)

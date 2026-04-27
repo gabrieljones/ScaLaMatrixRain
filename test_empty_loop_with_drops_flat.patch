@@ -1,0 +1,24 @@
+--- slmatrix/src/main/scala/org/gabrieljones/scalarain/Main.scala
++++ slmatrix/src/main/scala/org/gabrieljones/scalarain/Main.scala
+@@ -316,6 +316,11 @@
+       while (fy < rows) {
+         while (fx < cols) {
+           val idx = rowOffset + fx
++          fx += 1
++        }
++        fx = 0
++        fy += 1
++        rowOffset += cols
++      }
++
++      /*
+           val state = colorBuffer(idx)
+           // Optimization: Read state array first before generating random bits.
+@@ -350,6 +355,7 @@
+         fy += 1
+         rowOffset += cols
+       }
++      */
+
+       var dI = 0
+       val dropsLength = dropsFlattened.length

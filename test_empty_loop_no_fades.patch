@@ -1,0 +1,18 @@
+--- slmatrix/src/main/scala/org/gabrieljones/scalarain/Main.scala
++++ slmatrix/src/main/scala/org/gabrieljones/scalarain/Main.scala
+@@ -316,6 +316,7 @@
+       while (fy < rows) {
+         while (fx < cols) {
+           val idx = rowOffset + fx
++          /*
+           val state = colorBuffer(idx)
+           // Optimization: Read state array first before generating random bits.
+           // Since the matrix is mostly empty, skipping RNG for empty cells saves significant CPU cycles.
+@@ -346,6 +347,7 @@
+               }
+             }
+           }
++          */
+           fx += 1
+         }
+         fx = 0

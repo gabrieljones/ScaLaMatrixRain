@@ -1,0 +1,34 @@
+--- slmatrix/src/main/scala/org/gabrieljones/scalarain/Main.scala
++++ slmatrix/src/main/scala/org/gabrieljones/scalarain/Main.scala
+@@ -316,6 +316,7 @@
+       while (fy < rows) {
+         while (fx < cols) {
+           val idx = rowOffset + fx
++          /*
+           val state = colorBuffer(idx)
+           // Optimization: Read state array first before generating random bits.
+           // Since the matrix is mostly empty, skipping RNG for empty cells saves significant CPU cycles.
+@@ -346,6 +347,7 @@
+               }
+             }
+           }
++          */
+           fx += 1
+         }
+         fx = 0
+@@ -355,6 +357,7 @@
+       var dI = 0
+       val dropsLength = dropsFlattened.length
+       while (dI < dropsLength) {
++      /*
+         val pXC = dropsFlattened(dI)
+         val pYC = dropsFlattened(dI + 1)
+         val vX = dropsFlattened(dI + 2)
+@@ -406,6 +409,7 @@
+             dropsFlattened(dI + 3) = newVec.y
+           }
+         }
++        */
+         dI += 4
+       }
+       testPatternFn(terminal, input)

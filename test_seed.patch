@@ -1,0 +1,22 @@
+--- slmatrix/src/main/scala/org/gabrieljones/scalarain/Main.scala
++++ slmatrix/src/main/scala/org/gabrieljones/scalarain/Main.scala
+@@ -290,15 +290,15 @@
+       // of `ThreadLocalRandom.current().nextInt()`, resulting in a ~10-15% performance boost
+       // in the tight render loop.
+       inline def next31Bits(): Int = {
+-        seed = seed * 6364136223846793005L + 1442695040888963407L
+-        (seed >>> 33).toInt
++        seed = seed * 2862933555777941757L + 7046029254386353087L
++        ((seed >>> 32) & 0x7FFFFFFF).toInt
+       }
+       inline def nextBounded(bound: Int): Int = {
+         ((next31Bits().toLong * bound.toLong) >>> 31).toInt
+       }
+       inline def next7Bits(): Int = {
+-        seed = seed * 6364136223846793005L + 1442695040888963407L
+-        (seed >>> 57).toInt
++        seed = seed * 2862933555777941757L + 7046029254386353087L
++        ((seed >>> 56) & 0x7F).toInt
+       }
+
+       var fx = 0

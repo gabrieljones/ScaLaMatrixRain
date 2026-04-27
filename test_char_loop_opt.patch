@@ -1,0 +1,24 @@
+--- slmatrix/src/main/scala/org/gabrieljones/scalarain/Main.scala
++++ slmatrix/src/main/scala/org/gabrieljones/scalarain/Main.scala
+@@ -353,6 +353,8 @@
+
+       var dI = 0
+       val dropsLength = dropsFlattened.length
++
++      val frameCounterLocal = frameCounter
+       while (dI < dropsLength) {
+         val pXC = dropsFlattened(dI)
+         val pYC = dropsFlattened(dI + 1)
+@@ -369,12 +371,12 @@
+           // Optimization: Pre-compute direction and avoid modulo when v == 1 or -1
+           if (vX != 0) {
+              if (vX == 1 || vX == -1) pXN += vX
+-             else if (frameCounter % vX == 0) pXN += (if (vX > 0) 1 else -1)
++             else if (frameCounterLocal % vX == 0) pXN += (if (vX > 0) 1 else -1)
+           }
+           if (vY != 0) {
+              if (vY == 1 || vY == -1) pYN += vY
+-             else if (frameCounter % vY == 0) pYN += (if (vY > 0) 1 else -1)
++             else if (frameCounterLocal % vY == 0) pYN += (if (vY > 0) 1 else -1)
+           }
+         }

@@ -1,0 +1,47 @@
+--- slmatrix/src/main/scala/org/gabrieljones/scalarain/Main.scala
++++ slmatrix/src/main/scala/org/gabrieljones/scalarain/Main.scala
+@@ -142,7 +142,8 @@
+
+     // Optimization: Precompute faded white color and TextCharacters to avoid repeated allocations and lookups
+     // Cache dimensions: [State][CharIndex]
+-    val charCache = Array.ofDim[TextCharacter](maxState + 1, sets.length)
++    val setsLengthVal = sets.length
++    val charCache = new Array[TextCharacter]((maxState + 1) * setsLengthVal)
+
+     // Initialize cache
+     for (state <- 0 to maxState) {
+@@ -150,12 +151,13 @@
+        // State 0 (head) uses BOLD, others use default modifiers
+        val isHead = state == 0
+
+-       for (i <- 0 until sets.length) {
++       val offset = state * setsLengthVal
++       for (i <- 0 until setsLengthVal) {
+           val char = sets.getAsInt(i).toChar
+           if (isHead) {
+-             charCache(state)(i) = new TextCharacter(char, color, TextColor.ANSI.DEFAULT, SGR.BOLD)
++             charCache(offset + i) = new TextCharacter(char, color, TextColor.ANSI.DEFAULT, SGR.BOLD)
+           } else {
+-             charCache(state)(i) = new TextCharacter(char, color, TextColor.ANSI.DEFAULT)
++             charCache(offset + i) = new TextCharacter(char, color, TextColor.ANSI.DEFAULT)
+           }
+        }
+     }
+@@ -190,7 +192,7 @@
+     // JVM may inline small methods, but explicit inlining avoids any call overhead in the hot inner loop.
+     inline def updateChar(x: Int, y: Int, charIndex: Int, state: Int, cols: Int, rows: Int): Unit = {
+       if (x >= 0 && x < cols && y >= 0 && y < rows) {
+-        val c = charCache(state)(charIndex)
++        val c = charCache(state * setsLengthVal + charIndex)
+         rainGraphics.setCharacter(x, y, c)
+
+         val idx = y * cols + x
+@@ -334,7 +336,7 @@
+                 val newCharIndex = if (glitch) (((r >>> 14).toLong * setsLength.toLong) >>> 17).toInt else charIndex
+
+                 // Lookup precomputed character
+-                val charNew = charCache(nextState)(newCharIndex)
++                val charNew = charCache(nextState * setsLengthVal + newCharIndex)
+                 rainGraphics.setCharacter(fx, fy, charNew)
+
+                 colorBuffer(idx) = nextState

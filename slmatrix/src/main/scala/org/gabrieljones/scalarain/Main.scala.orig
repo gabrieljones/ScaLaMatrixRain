@@ -142,8 +142,7 @@ object Main extends CaseApp[Options] {
 
     // Optimization: Precompute faded white color and TextCharacters to avoid repeated allocations and lookups
     // Cache dimensions: [State][CharIndex]
-    val setsLengthVal = sets.length
-    val charCache = new Array[TextCharacter]((maxState + 1) * setsLengthVal)
+    val charCache = Array.ofDim[TextCharacter](maxState + 1, sets.length)
 
     // Initialize cache
     for (state <- 0 to maxState) {
@@ -151,13 +150,12 @@ object Main extends CaseApp[Options] {
        // State 0 (head) uses BOLD, others use default modifiers
        val isHead = state == 0
 
-       val offset = state * setsLengthVal
-       for (i <- 0 until setsLengthVal) {
+       for (i <- 0 until sets.length) {
           val char = sets.getAsInt(i).toChar
           if (isHead) {
-             charCache(offset + i) = new TextCharacter(char, color, TextColor.ANSI.DEFAULT, SGR.BOLD)
+             charCache(state)(i) = new TextCharacter(char, color, TextColor.ANSI.DEFAULT, SGR.BOLD)
           } else {
-             charCache(offset + i) = new TextCharacter(char, color, TextColor.ANSI.DEFAULT)
+             charCache(state)(i) = new TextCharacter(char, color, TextColor.ANSI.DEFAULT)
           }
        }
     }
@@ -192,7 +190,7 @@ object Main extends CaseApp[Options] {
     // JVM may inline small methods, but explicit inlining avoids any call overhead in the hot inner loop.
     inline def updateChar(x: Int, y: Int, charIndex: Int, state: Int, cols: Int, rows: Int): Unit = {
       if (x >= 0 && x < cols && y >= 0 && y < rows) {
-        val c = charCache(state * setsLengthVal + charIndex)
+        val c = charCache(state)(charIndex)
         rainGraphics.setCharacter(x, y, c)
 
         val idx = y * cols + x
@@ -336,7 +334,7 @@ object Main extends CaseApp[Options] {
                 val newCharIndex = if (glitch) (((r >>> 14).toLong * setsLength.toLong) >>> 17).toInt else charIndex
 
                 // Lookup precomputed character
-                val charNew = charCache(nextState * setsLengthVal + newCharIndex)
+                val charNew = charCache(nextState)(newCharIndex)
                 rainGraphics.setCharacter(fx, fy, charNew)
 
                 colorBuffer(idx) = nextState
@@ -357,8 +355,8 @@ object Main extends CaseApp[Options] {
       var dI = 0
       val dropsLength = dropsFlattened.length
       while (dI < dropsLength) {
-        var pXC = dropsFlattened(dI)
-        var pYC = dropsFlattened(dI + 1)
+        val pXC = dropsFlattened(dI)
+        val pYC = dropsFlattened(dI + 1)
         val vX = dropsFlattened(dI + 2)
         val vY = dropsFlattened(dI + 3)
         // Optimization: Generate index once to lookup both char and precomputed trail character
@@ -379,6 +377,10 @@ object Main extends CaseApp[Options] {
           }
         }
 
+        // Optimization: Write new positions back to array once
+        dropsFlattened(dI) = pXN
+        dropsFlattened(dI + 1) = pYN
+
         {//paint drop new at next position
           updateChar(pXN, pYN, charIndex, 0, cols, rows)
         }
@@ -397,16 +399,12 @@ object Main extends CaseApp[Options] {
           if (acceleration.outOfBounds(pXN, pYN)) {
             val newPos = acceleration.newPosition(mousePosition.getColumn, mousePosition.getRow)
             val newVec = acceleration.startVector
-            pXN = newPos.x
-            pYN = newPos.y
+            dropsFlattened(dI) = newPos.x
+            dropsFlattened(dI + 1) = newPos.y
             dropsFlattened(dI + 2) = newVec.x
             dropsFlattened(dI + 3) = newVec.y
           }
         }
-
-        dropsFlattened(dI) = pXN
-        dropsFlattened(dI + 1) = pYN
-
         dI += 4
       }
       testPatternFn(terminal, input)

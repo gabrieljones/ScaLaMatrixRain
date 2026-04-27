@@ -1,0 +1,33 @@
+--- slmatrix/src/main/scala/org/gabrieljones/scalarain/Main.scala
++++ slmatrix/src/main/scala/org/gabrieljones/scalarain/Main.scala
+@@ -318,13 +318,12 @@
+       val cols = frameContext.cols
+       val setsLength = sets.length
+
+-      var rowOffset = 0
+-      while (fy < rows) {
+-        while (fx < cols) {
+-          val idx = rowOffset + fx
++      var idx = 0
++      val limit = rows * cols
++      while (idx < limit) {
+           val state = colorBuffer(idx)
+           if (state >= 0) {
+             val r = next31Bits()
+@@ -345,11 +344,12 @@
+               }
+             }
+           }
+           fx += 1
++          if (fx == cols) {
++            fx = 0
++            fy += 1
++          }
++          idx += 1
+-        }
+-        fx = 0
+-        fy += 1
+-        rowOffset += cols
+       }
+
+       var dI = 0
