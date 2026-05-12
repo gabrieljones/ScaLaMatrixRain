@@ -74,3 +74,7 @@
 **Learning:** In the drops advancement loop in `Main.scala`, `dropsFlattened` was written to with the new positions `pXN` and `pYN` unconditionally, and then rewritten with `newPos` values if the drop was out of bounds. This resulted in redundant writes.
 **Insight:** Moving the position updates inside the `if/else` block that checks for out of bounds conditions eliminates an unnecessary array write when a drop gets replaced.
 **Action:** When updating elements in a primitive array where subsequent logic might completely overwrite the values, group the array writes together and use conditional branches to guarantee exactly one write per element.
+
+## 2024-05-19 - Optimization: Conditional Character Draw to Terminal Graphic
+**Learning:** In the `Main.scala` inner loop when computing the fading and glitching matrix drops, previously every cell was unconditionally setting its character on the Lanterna graphic using `rainGraphics.setCharacter()`, even if neither the drop's color (`state`) nor its specific character (`charIndex`) had changed. Calling `setCharacter()` incurs terminal string caching and buffering updates under the hood.
+**Action:** Wrap the character update inside a simple `if (nextState != state || newCharIndex != charIndex)` condition. Since terminal state is generally cached and many fading cell frames don't result in character or color transition, conditional bypassing improves FPS rendering limits considerably.
