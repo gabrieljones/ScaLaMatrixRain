@@ -74,3 +74,8 @@
 **Learning:** In the drops advancement loop in `Main.scala`, `dropsFlattened` was written to with the new positions `pXN` and `pYN` unconditionally, and then rewritten with `newPos` values if the drop was out of bounds. This resulted in redundant writes.
 **Insight:** Moving the position updates inside the `if/else` block that checks for out of bounds conditions eliminates an unnecessary array write when a drop gets replaced.
 **Action:** When updating elements in a primitive array where subsequent logic might completely overwrite the values, group the array writes together and use conditional branches to guarantee exactly one write per element.
+
+## 2026-05-18 - [Optimization Success: Avoid redundant render calls when state unchanged]
+**Learning:** In the tight inner loop updating the characters of the Matrix rain in `Main.scala`, unconditionally calling `setCharacter` even if the character and color state haven't changed adds overhead.
+**Insight:** Rendering functions, even virtual ones like Lanterna's, generally do some caching or buffer allocation when characters are set. Checking if the `nextState != state || newCharIndex != charIndex` before updating the terminal buffer with `rainGraphics.setCharacter` reduces unnecessary work. This is especially true for the "glitch" effect where a character index might change, but sometimes the character evaluated via random bits remains the exact same as before.
+**Action:** When working with rendering grids or text terminals, wrap `setCharacter` or draw calls in an `if` block that checks whether the target state (color, character, modifiers) actually differs from the current state to avoid redundant render buffer updates.
