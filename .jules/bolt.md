@@ -74,3 +74,8 @@
 **Learning:** In the drops advancement loop in `Main.scala`, `dropsFlattened` was written to with the new positions `pXN` and `pYN` unconditionally, and then rewritten with `newPos` values if the drop was out of bounds. This resulted in redundant writes.
 **Insight:** Moving the position updates inside the `if/else` block that checks for out of bounds conditions eliminates an unnecessary array write when a drop gets replaced.
 **Action:** When updating elements in a primitive array where subsequent logic might completely overwrite the values, group the array writes together and use conditional branches to guarantee exactly one write per element.
+
+## 2026-05-19 - [Optimization Success: Redundant Terminal Redraw Removal]
+**Learning:** In the tight cell update loop in `Main.scala`, unconditionally calling `rainGraphics.setCharacter` to redraw every cell that is active (`state >= 0`) causes significant overhead in Lanterna string caching and buffering when the cell character and color haven't actually changed. By adding a conditional check `if (nextState != state || newCharIndex != charIndex)` before calling `setCharacter` and only updating `colorBuffer` and `charIndexBuffer` when values are different, we avoid a lot of terminal redrawing overhead.
+**Insight:** When rendering to a terminal UI buffer, writing the exact same value that already exists to the buffer still incurs significant framework overhead. Explicitly diffing the state before mutating the UI framework avoids this cost.
+**Action:** Always verify if the new state differs from the current state before triggering a UI update operation (like `setCharacter`), especially inside the innermost hot loop of a render cycle.
