@@ -74,3 +74,8 @@
 **Learning:** In the drops advancement loop in `Main.scala`, `dropsFlattened` was written to with the new positions `pXN` and `pYN` unconditionally, and then rewritten with `newPos` values if the drop was out of bounds. This resulted in redundant writes.
 **Insight:** Moving the position updates inside the `if/else` block that checks for out of bounds conditions eliminates an unnecessary array write when a drop gets replaced.
 **Action:** When updating elements in a primitive array where subsequent logic might completely overwrite the values, group the array writes together and use conditional branches to guarantee exactly one write per element.
+
+## 2026-05-27 - [Optimization Success: Skipping Redundant setCharacter Calls]
+**Learning:** In Lanterna terminal rendering (`Main.scala`), calling `setCharacter()` incurs significant internal string caching and buffering overhead. When implementing visual effects like "glitches", conditionally bypassing the `setCharacter` call and array writes when the new character and state are identical to the previous ones improves frame rates considerably.
+**Insight:** Even though setting a character seems like a cheap operation, doing it thousands of times per frame for identical characters triggers unnecessary object allocations and buffer management within the library.
+**Action:** Always track previous state in tight rendering loops. Before sending data to a library or external API, check if the state has actually changed and bypass the call if it hasn't.
