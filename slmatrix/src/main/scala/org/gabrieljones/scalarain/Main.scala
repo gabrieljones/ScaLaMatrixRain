@@ -190,13 +190,17 @@ object Main extends CaseApp[Options] {
     // JVM may inline small methods, but explicit inlining avoids any call overhead in the hot inner loop.
     inline def updateChar(x: Int, y: Int, charIndex: Int, state: Int, cols: Int, rows: Int): Unit = {
       if (x >= 0 && x < cols && y >= 0 && y < rows) {
-        val c = charCache(state)(charIndex)
-        rainGraphics.setCharacter(x, y, c)
-
         val idx = y * cols + x
-        colorBuffer(idx) = state
-        if (state >= 0) {
-           charIndexBuffer(idx) = charIndex
+
+        // Optimization: Skip setCharacter and array writes if nothing changed
+        if (colorBuffer(idx) != state || charIndexBuffer(idx) != charIndex) {
+          val c = charCache(state)(charIndex)
+          rainGraphics.setCharacter(x, y, c)
+
+          colorBuffer(idx) = state
+          if (state >= 0) {
+             charIndexBuffer(idx) = charIndex
+          }
         }
       }
     }

@@ -74,3 +74,8 @@
 **Learning:** In the drops advancement loop in `Main.scala`, `dropsFlattened` was written to with the new positions `pXN` and `pYN` unconditionally, and then rewritten with `newPos` values if the drop was out of bounds. This resulted in redundant writes.
 **Insight:** Moving the position updates inside the `if/else` block that checks for out of bounds conditions eliminates an unnecessary array write when a drop gets replaced.
 **Action:** When updating elements in a primitive array where subsequent logic might completely overwrite the values, group the array writes together and use conditional branches to guarantee exactly one write per element.
+
+## 2026-05-29 - [Optimization Success: Avoid Redundant Array Writes in updateChar]
+**Learning:** In the `Main.scala` render loop, `updateChar` is called heavily for every active drop. Previously, it unconditionally looked up a character from cache, set it in the terminal, and updated the `colorBuffer` and `charIndexBuffer`.
+**Insight:** By checking if the current state and character index in the buffers are already equal to the new ones, we can completely bypass the terminal `setCharacter` call and the redundant buffer writes for unchanged cells.
+**Action:** When updating a grid where many cells may not actually change state or content, verify that a change is actually needed by checking the buffers before performing expensive updates.
