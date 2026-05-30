@@ -311,6 +311,9 @@ object Main extends CaseApp[Options] {
       // Iterating through a single 1D array improves CPU cache locality and
       // avoids the overhead of dereferencing sub-arrays.
       val totalCells = rows * cols
+      // Optimization: Maintain coordinates sequentially while incrementing the index.
+      var fy = 0
+      var fx = 0
       var idx = 0
       while (idx < totalCells) {
         val state = colorBuffer(idx)
@@ -325,11 +328,6 @@ object Main extends CaseApp[Options] {
           if ((r & 127) < fadeThreshold) {
             val glitch = ((r >>> 7) & 127) < glitchThreshold
             val nextState = if (glitch) state else fadeTable(state)
-
-            // Reconstruct coordinates
-            // This avoids a nested loop while still computing coordinates only when needed.
-            val fy = idx / cols
-            val fx = idx % cols
 
             if (nextState >= 0) {
               val charIndex = charIndexBuffer(idx)
@@ -348,6 +346,11 @@ object Main extends CaseApp[Options] {
           }
         }
         idx += 1
+        fx += 1
+        if (fx == cols) {
+          fx = 0
+          fy += 1
+        }
       }
 
       var dI = 0
