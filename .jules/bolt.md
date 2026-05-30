@@ -74,3 +74,8 @@
 **Learning:** In the drops advancement loop in `Main.scala`, `dropsFlattened` was written to with the new positions `pXN` and `pYN` unconditionally, and then rewritten with `newPos` values if the drop was out of bounds. This resulted in redundant writes.
 **Insight:** Moving the position updates inside the `if/else` block that checks for out of bounds conditions eliminates an unnecessary array write when a drop gets replaced.
 **Action:** When updating elements in a primitive array where subsequent logic might completely overwrite the values, group the array writes together and use conditional branches to guarantee exactly one write per element.
+
+## 2026-05-30 - [Optimization Success: Avoid Division/Modulo in Matrix Iteration]
+**Learning:** In the `Main.scala` drop fade/glitch update loop, coordinates `fy` and `fx` were reconstructed using `idx / cols` and `idx % cols` inside the sparsity check `if (state >= 0)`. Although this was done sparsely, the ALU cost of integer division and modulo was still measurable. By maintaining `fy` and `fx` sequentially (incrementing `fx` on every step, and carrying over to `fy` when `fx == cols`), we avoid the division/modulo entirely.
+**Insight:** Sequential conditional arithmetic (`+` and `==`) inside the outer loop is faster on modern superscalar CPUs (which have good branch prediction for predictable patterns like line wraps) than sparse division (`/` and `%`) inside the inner block, improving FPS from ~2660 to ~2710 (+2%).
+**Action:** When iterating a flattened 2D grid, manually maintain `x` and `y` using addition and equality checks instead of computing them from the linear index using division and modulo, even if the computations are in a sparse code path.
