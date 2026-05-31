@@ -190,13 +190,15 @@ object Main extends CaseApp[Options] {
     // JVM may inline small methods, but explicit inlining avoids any call overhead in the hot inner loop.
     inline def updateChar(x: Int, y: Int, charIndex: Int, state: Int, cols: Int, rows: Int): Unit = {
       if (x >= 0 && x < cols && y >= 0 && y < rows) {
-        val c = charCache(state)(charIndex)
-        rainGraphics.setCharacter(x, y, c)
-
         val idx = y * cols + x
-        colorBuffer(idx) = state
-        if (state >= 0) {
-           charIndexBuffer(idx) = charIndex
+        if (colorBuffer(idx) != state || (state >= 0 && charIndexBuffer(idx) != charIndex)) {
+          val c = charCache(state)(charIndex)
+          rainGraphics.setCharacter(x, y, c)
+
+          colorBuffer(idx) = state
+          if (state >= 0) {
+             charIndexBuffer(idx) = charIndex
+          }
         }
       }
     }
@@ -335,12 +337,14 @@ object Main extends CaseApp[Options] {
               val charIndex = charIndexBuffer(idx)
               val newCharIndex = if (glitch) (((r >>> 14).toLong * setsLength.toLong) >>> 17).toInt else charIndex
 
-              // Lookup precomputed character
-              val charNew = charCache(nextState)(newCharIndex)
-              rainGraphics.setCharacter(fx, fy, charNew)
+              if (nextState != state || newCharIndex != charIndex) {
+                // Lookup precomputed character
+                val charNew = charCache(nextState)(newCharIndex)
+                rainGraphics.setCharacter(fx, fy, charNew)
 
-              colorBuffer(idx) = nextState
-              if (glitch) charIndexBuffer(idx) = newCharIndex
+                colorBuffer(idx) = nextState
+                if (glitch) charIndexBuffer(idx) = newCharIndex
+              }
             } else {
               rainGraphics.setCharacter(fx, fy, TextCharacter.DEFAULT_CHARACTER)
               colorBuffer(idx) = -1

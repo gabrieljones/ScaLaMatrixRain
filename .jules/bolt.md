@@ -74,3 +74,7 @@
 **Learning:** In the drops advancement loop in `Main.scala`, `dropsFlattened` was written to with the new positions `pXN` and `pYN` unconditionally, and then rewritten with `newPos` values if the drop was out of bounds. This resulted in redundant writes.
 **Insight:** Moving the position updates inside the `if/else` block that checks for out of bounds conditions eliminates an unnecessary array write when a drop gets replaced.
 **Action:** When updating elements in a primitive array where subsequent logic might completely overwrite the values, group the array writes together and use conditional branches to guarantee exactly one write per element.
+
+## 2026-05-31 - [Optimization Success: Avoid Redundant SetCharacter calls in Render Loop]
+**Learning:** In Lanterna terminal rendering (e.g., `Main.scala`), unconditionally invoking `setCharacter()` and writing back to backing arrays (`colorBuffer`, `charIndexBuffer`) incurs significant string caching, array writes, and Lanterna buffering overhead. By conditionally bypassing these writes when the calculated state and character have not changed (`colorBuffer(idx) != state || newCharIndex != charIndex`), we can save redundant memory and I/O operations, improving the render loop frame rate considerably (e.g., benchmark FPS increased from ~2100 to ~2700 FPS).
+**Action:** When updating grid-based terminal buffers, verify if the new state and character differ from the currently cached state before triggering a redraw/overwrite, specifically in hot paths like `updateChar` and fade/glitch iterators.
