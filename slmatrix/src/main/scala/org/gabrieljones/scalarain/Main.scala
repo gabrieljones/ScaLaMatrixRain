@@ -190,13 +190,15 @@ object Main extends CaseApp[Options] {
     // JVM may inline small methods, but explicit inlining avoids any call overhead in the hot inner loop.
     inline def updateChar(x: Int, y: Int, charIndex: Int, state: Int, cols: Int, rows: Int): Unit = {
       if (x >= 0 && x < cols && y >= 0 && y < rows) {
-        val c = charCache(state)(charIndex)
-        rainGraphics.setCharacter(x, y, c)
-
         val idx = y * cols + x
-        colorBuffer(idx) = state
-        if (state >= 0) {
-           charIndexBuffer(idx) = charIndex
+        // Optimization: Avoid updating the terminal if the character and state have not changed
+        if (colorBuffer(idx) != state || charIndexBuffer(idx) != charIndex) {
+          val c = charCache(state)(charIndex)
+          rainGraphics.setCharacter(x, y, c)
+          colorBuffer(idx) = state
+          if (state >= 0) {
+             charIndexBuffer(idx) = charIndex
+          }
         }
       }
     }
@@ -254,15 +256,21 @@ object Main extends CaseApp[Options] {
     val testPatternFn: (Terminal, KeyStroke) => Unit = if (options.testPattern) testPatternOnFn else testPatternOffFn
 
     val frameFn: Runnable = () => {
+      var inputReceived = false
       var tiD: KeyStroke = terminal.pollInput()
       var ti = tiD
       var draining = true
       while (draining) {
         tiD match {
           case ma: MouseAction if ma.isMouseMove || ma.isMouseDrag => //drain
+            inputReceived = true
             mousePosition = ma.getPosition
             tiD = terminal.pollInput()
+          case null =>
+            ti = tiD
+            draining = false
           case _ =>
+            inputReceived = true
             ti = tiD
             draining = false
         }
@@ -406,6 +414,12 @@ object Main extends CaseApp[Options] {
       testPatternFn(terminal, input)
       flush()
       frameCounter += 1
+
+      // Optimization: To reduce CPU utilization in the unthrottled execution mode
+      // (frameInterval <= 0), yield the thread if no terminal input was received.
+      if (!inputReceived && options.frameInterval <= 0) {
+        `Thread`.`yield`()
+      }
     }
 
     val shutdownHook = new Thread(() => {

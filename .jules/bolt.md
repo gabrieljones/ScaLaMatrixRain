@@ -74,3 +74,6 @@
 **Learning:** In the drops advancement loop in `Main.scala`, `dropsFlattened` was written to with the new positions `pXN` and `pYN` unconditionally, and then rewritten with `newPos` values if the drop was out of bounds. This resulted in redundant writes.
 **Insight:** Moving the position updates inside the `if/else` block that checks for out of bounds conditions eliminates an unnecessary array write when a drop gets replaced.
 **Action:** When updating elements in a primitive array where subsequent logic might completely overwrite the values, group the array writes together and use conditional branches to guarantee exactly one write per element.
+## 2026-06-04 - Unthrottled render loop CPU utilization
+**Learning:** In terminal rendering applications where `frameInterval <= 0` (unthrottled execution), the `while` loop will continuously consume CPU cycles and result in 100% core pinning even when there is no user input or rendering change pending.
+**Action:** Always insert a `Thread.yield()` conditionally when the unthrottled loop finishes a frame processing but hasn't received any new input (`!inputReceived`). This mitigates high CPU utilisation while preserving high FPS throughput for terminal renders.
