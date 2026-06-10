@@ -5,12 +5,12 @@ import java.util.concurrent.ThreadLocalRandom
 object Physics {
   opaque type Vector2 = Long
   object Vector2 {
-    def apply(x: Int, y: Int): Vector2 = {
+    inline def apply(x: Int, y: Int): Vector2 = {
       ((y.toLong & 0xFFFFFFFFL) << 32) | (x.toLong & 0xFFFFFFFFL)
     }
     extension (v: Vector2) {
-      def x: Int = (v & 0xFFFFFFFFL).toInt
-      def y: Int = ((v >> 32) & 0xFFFFFFFFL).toInt
+      inline def x: Int = (v & 0xFFFFFFFFL).toInt
+      inline def y: Int = ((v >> 32) & 0xFFFFFFFFL).toInt
     }
   }
 
