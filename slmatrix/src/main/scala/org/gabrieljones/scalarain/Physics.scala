@@ -9,8 +9,8 @@ object Physics {
       ((y.toLong & 0xFFFFFFFFL) << 32) | (x.toLong & 0xFFFFFFFFL)
     }
     extension (v: Vector2) {
-      def x: Int = (v & 0xFFFFFFFFL).toInt
-      def y: Int = ((v >> 32) & 0xFFFFFFFFL).toInt
+      inline def x: Int = (v & 0xFFFFFFFFL).toInt
+      inline def y: Int = ((v >> 32) & 0xFFFFFFFFL).toInt
     }
   }
 
