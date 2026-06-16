@@ -204,22 +204,25 @@ object Main extends CaseApp[Options] {
     val acceleration: Physics.Acceleration = Physics.Acceleration.fromName(options.physics)
 
     val dropQuantity = (dropQuantityFactor * frameContext.cols).toInt
-    // Optimization: Flatten the drops array from Array[Array[Int]] to a single Array[Int]
-    // where each drop takes up 4 consecutive slots (x, y, vx, vy). This improves cache locality.
-    val dropsFlattened: Array[Int] = {
-      val arr = new Array[Int](dropQuantity * 4)
+    // Optimization: Data-Oriented Design. Convert drops to Structure of Arrays (SoA).
+    // Uses 4 separate arrays for x, y, vx, vy for better cache locality and linear striding.
+    val dropsX = new Array[Int](dropQuantity)
+    val dropsY = new Array[Int](dropQuantity)
+    val dropsVX = new Array[Int](dropQuantity)
+    val dropsVY = new Array[Int](dropQuantity)
+
+    locally {
       given rng: ThreadLocalRandom = ThreadLocalRandom.current()
       var i = 0
       while (i < dropQuantity) {
         val startPos = acceleration.startPosition
         val startVec = acceleration.startVector
-        arr(i * 4) = startPos.x
-        arr(i * 4 + 1) = startPos.y
-        arr(i * 4 + 2) = startVec.x
-        arr(i * 4 + 3) = startVec.y
+        dropsX(i) = startPos.x
+        dropsY(i) = startPos.y
+        dropsVX(i) = startVec.x
+        dropsVY(i) = startVec.y
         i += 1
       }
-      arr
     }
     val testPatternOnFn = (t: Terminal, input: KeyStroke) => {
       if (input != null) {
@@ -231,7 +234,7 @@ object Main extends CaseApp[Options] {
       testPatternGraphics.putString(2, 2, ts.toString)
       testPatternGraphics.putString(2, 3, bu.toString)
       testPatternGraphics.putString(2, 4, frameCounter.toString)
-      val testPatternDrop0 = s"${dropsFlattened(0)},${dropsFlattened(1)},${dropsFlattened(2)},${dropsFlattened(3)}"
+      val testPatternDrop0 = s"${dropsX(0)},${dropsY(0)},${dropsVX(0)},${dropsVY(0)}"
       testPatternGraphics.putString(2, 5, testPatternDrop0)
       testPatternGraphics.putString(2, 6, lastInput.get().toString)
       testPatternGraphics.putString(2, 7, mousePosition.toString)
@@ -351,12 +354,12 @@ object Main extends CaseApp[Options] {
       }
 
       var dI = 0
-      val dropsLength = dropsFlattened.length
+      val dropsLength = dropQuantity
       while (dI < dropsLength) {
-        val pXC = dropsFlattened(dI)
-        val pYC = dropsFlattened(dI + 1)
-        val vX = dropsFlattened(dI + 2)
-        val vY = dropsFlattened(dI + 3)
+        val pXC = dropsX(dI)
+        val pYC = dropsY(dI)
+        val vX = dropsVX(dI)
+        val vY = dropsVY(dI)
         // Optimization: Generate index once to lookup both char and precomputed trail character
         val charIndex = nextBounded(setsLength)
 
@@ -364,13 +367,15 @@ object Main extends CaseApp[Options] {
         var pYN = pYC
 
         {//advance drops
-          // Optimization: Pre-compute direction and avoid modulo when v == 1 or -1
+          // Optimization: Pre-compute direction and avoid modulo when v == 1 or -1.
           if (vX != 0) {
-             if (vX == 1 || vX == -1) pXN += vX
+             if (vX == 1) pXN += 1
+             else if (vX == -1) pXN -= 1
              else if (frameCounter % vX == 0) pXN += (if (vX > 0) 1 else -1)
           }
           if (vY != 0) {
-             if (vY == 1 || vY == -1) pYN += vY
+             if (vY == 1) pYN += 1
+             else if (vY == -1) pYN -= 1
              else if (frameCounter % vY == 0) pYN += (if (vY > 0) 1 else -1)
           }
         }
@@ -390,18 +395,18 @@ object Main extends CaseApp[Options] {
         if (acceleration.outOfBounds(pXN, pYN)) {
           val newPos = acceleration.newPosition(mousePosition.getColumn, mousePosition.getRow)
           val newVec = acceleration.startVector
-          dropsFlattened(dI) = newPos.x
-          dropsFlattened(dI + 1) = newPos.y
-          dropsFlattened(dI + 2) = newVec.x
-          dropsFlattened(dI + 3) = newVec.y
+          dropsX(dI) = newPos.x
+          dropsY(dI) = newPos.y
+          dropsVX(dI) = newVec.x
+          dropsVY(dI) = newVec.y
         } else {
           val vec = acceleration.apply(vX, vY, pXC, pYC)
-          dropsFlattened(dI) = pXN
-          dropsFlattened(dI + 1) = pYN
-          dropsFlattened(dI + 2) = vec.x
-          dropsFlattened(dI + 3) = vec.y
+          dropsX(dI) = pXN
+          dropsY(dI) = pYN
+          dropsVX(dI) = vec.x
+          dropsVY(dI) = vec.y
         }
-        dI += 4
+        dI += 1
       }
       testPatternFn(terminal, input)
       flush()

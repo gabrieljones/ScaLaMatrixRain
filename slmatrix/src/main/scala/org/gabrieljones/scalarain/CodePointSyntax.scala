@@ -30,11 +30,11 @@ object CodePointSyntax {
   }
 
   extension (sets: SetsOfCodePoints) {
-    @inline def get(i: Int) = sets(i)
-    @inline def getAsInt(i: Int): Int = sets(i)
+    inline def get(i: Int) = sets(i)
+    inline def getAsInt(i: Int): Int = sets(i)
     def maxDisplayWidth(): Int = sets.map(_.getDisplayWidth).max
     def randomChar(using rng: ThreadLocalRandom): Char = sets.get(rng.nextInt(sets.length)).toChar
-    def length = sets.length
+    inline def length = sets.length
     def unwrap: Array[Int] = sets
     def contains(elem: Int): Boolean = scala.Predef.intArrayOps(sets).contains(elem)
     def count(p: Int => Boolean): Int = scala.Predef.intArrayOps(sets).count(p)
